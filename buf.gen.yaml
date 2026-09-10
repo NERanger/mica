@@ -1,0 +1,14 @@
+# Buf requires YAML. This is a third-party tooling constraint.
+# MICA-owned configuration is TOML.
+version: v2
+plugins:
+  - protoc_builtin: python
+    out: generated/python
+  - protoc_builtin: pyi
+    out: generated/python
+  - protoc_builtin: cpp
+    out: generated/cpp
+  - local: protoc-gen-go
+    out: generated/go
+    opt:
+      - paths=source_relative

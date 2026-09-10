@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+export PATH="$ROOT/.tools/bin:$PATH"
+cd "$ROOT"
+
+if ! command -v buf >/dev/null; then
+  echo "buf is required; run ./scripts/bootstrap" >&2
+  exit 1
+fi
+if ! command -v protoc-gen-go >/dev/null; then
+  echo "protoc-gen-go is required; run ./scripts/bootstrap" >&2
+  exit 1
+fi
+
+mkdir -p generated/python generated/cpp generated/go
+
+buf lint
+buf generate
+buf build -o generated/image.binpb
+
+python3 - <<'PY'
+from pathlib import Path
+root = Path("generated/python")
+for path in root.rglob("*_pb2.py"):
+    current = path.parent
+    while current != root and current != current.parent:
+        init = current / "__init__.py"
+        if not init.exists():
+            init.write_text("", encoding="utf-8")
+        current = current.parent
+PY
+
+if [[ -f generated/python/mica/v1/runtime_pb2.py ]]; then
+  cp generated/python/mica/v1/runtime_pb2.py runtime/python/src/mica/runtime_pb2.py
+  if [[ -f generated/python/mica/v1/runtime_pb2.pyi ]]; then
+    cp generated/python/mica/v1/runtime_pb2.pyi runtime/python/src/mica/runtime_pb2.pyi
+  fi
+fi
+
+python3 scripts/generate_tokens.py
+
+if [[ ! -f contracts/baseline.binpb ]]; then
+  cp generated/image.binpb contracts/baseline.binpb
+  echo "wrote contracts/baseline.binpb"
+fi
+buf breaking --against contracts/baseline.binpb
+echo "generate ok"

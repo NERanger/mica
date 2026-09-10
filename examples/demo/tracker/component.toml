@@ -1,0 +1,15 @@
+[component]
+name = "tracker"
+language = "python"
+
+publishes = [
+  "tracking.v1.PersonTracked",
+]
+
+subscribes = [
+  "camera.v1.PoseChanged",
+]
+
+calls = []
+
+provides = []

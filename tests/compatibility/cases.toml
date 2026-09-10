@@ -1,0 +1,11 @@
+[[event]]
+contract = "camera.v1.PoseChanged"
+expected_subject = "event.camera.v1.PoseChanged"
+
+[[event]]
+contract = "tracking.v1.PersonTracked"
+expected_subject = "event.tracking.v1.PersonTracked"
+
+[[rpc]]
+contract = "camera.v1.CameraControl.SetPose"
+expected_subject = "rpc.camera.v1.CameraControl.SetPose"

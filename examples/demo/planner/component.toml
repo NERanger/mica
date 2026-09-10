@@ -1,0 +1,15 @@
+[component]
+name = "planner"
+language = "go"
+
+publishes = []
+
+subscribes = [
+  "tracking.v1.PersonTracked",
+]
+
+calls = [
+  "camera.v1.CameraControl.SetPose",
+]
+
+provides = []

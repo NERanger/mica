@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+export PATH="$ROOT/.tools/bin:$PATH"
+cd "$ROOT"
+
+./scripts/build
+buf lint
+buf breaking --against contracts/baseline.binpb
+python3 -m pytest
+ctest --test-dir build --output-on-failure -R '^mica'
+go test ./runtime/go/mica ./tests/compatibility/go
+
+echo "test ok"

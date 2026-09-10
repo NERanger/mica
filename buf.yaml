@@ -1,0 +1,13 @@
+# Buf requires YAML. This is a third-party tooling constraint.
+# MICA-owned configuration is TOML.
+version: v2
+modules:
+  - path: contracts
+lint:
+  use:
+    - STANDARD
+  except:
+    - SERVICE_SUFFIX
+breaking:
+  use:
+    - FILE

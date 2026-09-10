@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package camera.v1;
+
+option go_package = "mica/generated/go/camera/v1;camerav1";
+
+message CameraId {
+  string value = 1;
+}
+
+message Pose {
+  float pan = 1;
+  float tilt = 2;
+  float zoom = 3;
+}
+
+message SetPoseRequest {
+  CameraId camera_id = 1;
+  Pose pose = 2;
+}
+
+message SetPoseResponse {
+  bool accepted = 1;
+}
+
+message PoseChanged {
+  CameraId camera_id = 1;
+  Pose pose = 2;
+  uint64 timestamp_ns = 3;
+}
+
+service CameraControl {
+  rpc SetPose(SetPoseRequest) returns (SetPoseResponse);
+}

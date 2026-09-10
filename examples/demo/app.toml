@@ -1,0 +1,28 @@
+[app]
+name = "demo"
+shutdown_timeout_ms = 5000
+
+[transport]
+kind = "nats"
+url = "nats://127.0.0.1:4222"
+
+[[process]]
+name = "camera-control"
+command = "../../build/bin/camera-control"
+component = "./camera-control/component.toml"
+restart = "never"
+
+[[process]]
+name = "tracker"
+command = "python3"
+args = ["-m", "tracker"]
+working_directory = "."
+component = "./tracker/component.toml"
+restart = "never"
+env = { PYTHONUNBUFFERED = "1" }
+
+[[process]]
+name = "planner"
+command = "../../build/bin/planner"
+component = "./planner/component.toml"
+restart = "never"

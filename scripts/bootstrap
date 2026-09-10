@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+TOOLS="$ROOT/.tools/bin"
+mkdir -p "$TOOLS"
+export PATH="$TOOLS:$PATH"
+export GOBIN="$TOOLS"
+
+need() {
+  if ! command -v "$1" >/dev/null; then
+    echo "missing required tool: $1" >&2
+    MISSING=1
+  fi
+}
+
+MISSING=0
+need python3
+need cmake
+need g++
+need go
+need protoc
+need curl
+
+python_ok="$(python3 - <<'PY'
+import sys
+print("ok" if sys.version_info >= (3, 12) else "no")
+PY
+)"
+if [[ "$python_ok" != "ok" ]]; then
+  echo "python 3.12+ is required" >&2
+  MISSING=1
+fi
+
+if [[ "$MISSING" -ne 0 ]]; then
+  exit 1
+fi
+
+if ! command -v buf >/dev/null; then
+  echo "installing buf into .tools/bin"
+  tmp="$(mktemp -d)"
+  curl -fsSL "https://github.com/bufbuild/buf/releases/download/v1.50.1/buf-Linux-x86_64.tar.gz" | tar -xz -C "$tmp"
+  install -m 755 "$tmp/buf/bin/buf" "$TOOLS/buf"
+  rm -rf "$tmp"
+fi
+
+if ! command -v nats-server >/dev/null; then
+  echo "installing nats-server into .tools/bin"
+  tmp="$(mktemp -d)"
+  curl -fsSL "https://github.com/nats-io/nats-server/releases/download/v2.10.26/nats-server-v2.10.26-linux-amd64.tar.gz" | tar -xz -C "$tmp"
+  install -m 755 "$tmp"/nats-server-*/nats-server "$TOOLS/nats-server"
+  rm -rf "$tmp"
+fi
+
+if ! command -v protoc-gen-go >/dev/null; then
+  echo "installing protoc-gen-go into .tools/bin"
+  go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.5
+fi
+
+python3 -m pip install -e "${ROOT}[dev]"
+go -C "$ROOT" mod download
+
+echo "bootstrap ok"
+echo "add $TOOLS to PATH, or use the repo scripts which do so automatically"

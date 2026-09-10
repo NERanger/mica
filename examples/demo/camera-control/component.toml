@@ -1,0 +1,15 @@
+[component]
+name = "camera-control"
+language = "cpp"
+
+publishes = [
+  "camera.v1.PoseChanged",
+]
+
+subscribes = []
+
+calls = []
+
+provides = [
+  "camera.v1.CameraControl.SetPose",
+]
