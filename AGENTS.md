@@ -18,6 +18,11 @@ application programming model.
   a compatibility layer, legacy fallback, dual path, or migration path. An
   active documented contract remains a current requirement until an approved
   design change replaces it.
+- Keep documentation synchronized with code. When a change affects documented
+  behavior, APIs, contracts, configuration, commands, architecture, or developer
+  workflows, update the relevant authoritative documentation in the same change.
+  Documentation updates are unnecessary when the existing documentation remains
+  accurate.
 - Use the simplest implementation that fully satisfies current requirements.
   Do not add speculative abstractions, configuration, or indirection.
 - Deliver the smallest end-to-end working version first, then add capability in
