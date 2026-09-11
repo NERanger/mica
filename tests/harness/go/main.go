@@ -8,9 +8,9 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	camerav1 "mica/generated/go/camera/v1"
-	"mica/generated/go/mica/tokens"
-	trackingv1 "mica/generated/go/tracking/v1"
+	camerav1 "mica/examples/demo/generated/go/camera/v1"
+	"mica/examples/demo/generated/go/mica/tokens"
+	trackingv1 "mica/examples/demo/generated/go/tracking/v1"
 	"mica/runtime/go/mica"
 )
 

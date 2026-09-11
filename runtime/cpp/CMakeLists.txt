@@ -15,7 +15,9 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(nats_c)
 FetchContent_GetProperties(nats_c)
 
-set(MICA_GENERATED_DIR "${CMAKE_SOURCE_DIR}/generated/cpp")
+if(NOT DEFINED MICA_RUNTIME_GENERATED_DIR)
+  set(MICA_RUNTIME_GENERATED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../generated/cpp")
+endif()
 
 add_library(mica
   src/subject.cpp
@@ -23,15 +25,13 @@ add_library(mica
   src/config.cpp
   src/health.cpp
   src/app.cpp
-  "${MICA_GENERATED_DIR}/camera/v1/camera.pb.cc"
-  "${MICA_GENERATED_DIR}/tracking/v1/tracking.pb.cc"
-  "${MICA_GENERATED_DIR}/mica/v1/runtime.pb.cc"
+  "${MICA_RUNTIME_GENERATED_DIR}/mica/v1/runtime.pb.cc"
 )
 
 target_include_directories(mica
   PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
-    "${MICA_GENERATED_DIR}"
+    "${MICA_RUNTIME_GENERATED_DIR}"
     ${Protobuf_INCLUDE_DIRS}
   PRIVATE
     "${nats_c_SOURCE_DIR}/src"

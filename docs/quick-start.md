@@ -23,8 +23,10 @@ Install these yourself:
 - `buf`
 - `nats-server`
 - `protoc-gen-go`
+- `makeself`
+- the `mica` CLI
 
-Repo scripts prepend `.tools/bin` to `PATH`. After bootstrap, `pip install -e .` provides the `mica` command.
+Repo scripts prepend `.tools/bin` to `PATH`. After bootstrap, `mica` is that CLI. The Python runtime is installed editable as the `mica` package.
 
 ## First run
 
@@ -34,19 +36,11 @@ From the repository root:
 ./scripts/bootstrap
 ./scripts/build
 ./scripts/test
-mica validate examples/demo/app.toml
-mica inspect examples/demo/app.toml
 mica graph examples/demo/app.toml
 ./scripts/run-demo
 ```
 
-If `mica` is not on `PATH`:
-
-```
-python3 -m mica.cli validate examples/demo/app.toml
-```
-
-`./scripts/run-demo` builds if needed, starts a local `nats-server`, and runs `examples/demo/app.toml`. Stop with Ctrl+C.
+`./scripts/run-demo` builds, starts a local `nats-server`, and runs `mica deploy examples/demo/app.toml --local --start-nats`. Stop with Ctrl+C.
 
 ## What the demo does
 
@@ -65,49 +59,68 @@ Go planner
 You should see log lines like:
 
 ```
-[camera-control] started
-[tracker] started
-[planner] started
 [planner] SetPose RPC completed accepted=true iteration=1
 [tracker] received PoseChanged ...
 [tracker] published PersonTracked
 [planner] received PersonTracked ...
 ... iteration=3 ...
-[camera-control] stopped
-[tracker] stopped
-[planner] stopped
 ```
 
 A `transport error: nats: unexpected EOF` on shutdown is the Python client noticing NATS going away. It is not a demo failure.
 
-Without `--start-nats`, `mica run` expects an external server at the URL in `app.toml` (default `nats://127.0.0.1:4222`).
+`examples/demo` is a workspace: `app.toml`, `contracts/`, `components`, and generated code all live under it. `mica build examples/demo/app.toml` builds it; `mica graph examples/demo/app.toml` shows its topology.
+
+## Your own application
+
+```
+mkdir hello
+cd hello
+mica init .
+mica build
+mica deploy --local --start-nats
+```
+
+`mica init` scaffolds `app.toml`, `buf.yaml`, `buf.gen.yaml`, `contracts/`, a Hello component, and `tests/`.
 
 ## Daily loop
 
+MICA framework repository:
+
 | Change | Then |
 | --- | --- |
-| `contracts/*.proto` | `./scripts/generate` (never edit `generated/`) |
-| Python / C++ / Go runtime or demo | `./scripts/build` |
+| `contracts/mica/*.proto` | `./scripts/generate` |
+| runtime, CLI, or demo source | `./scripts/build` |
 | Behavior or contracts | `./scripts/test` |
+
+Inside an application workspace:
+
+| Change | Then |
+| --- | --- |
+| `contracts/*.proto` | `mica generate` |
+| component source or build metadata | `mica build` |
+| behavior | `mica test` |
+| run locally | `mica deploy --local` |
+| deliver | `mica deploy --output dist/app.run` |
 
 Default verification is `./scripts/test`. Integration tests need `nats-server`.
 
-Buf breaking checks use `contracts/baseline.binpb`. Update that file only when you intentionally freeze a new contract snapshot.
+Buf breaking checks use `contracts/baseline.binpb` for the framework contracts and the workspace image for application contracts. Update a baseline only when you intentionally freeze a new contract snapshot.
 
 ## Where things live
 
 | Path | Role |
 | --- | --- |
-| `contracts/` | Protobuf source of truth |
-| `generated/` | Buf output; gitignored; do not edit |
+| `contracts/` | Framework `mica.v1` contract source |
+| `generated/` | Framework Buf output; gitignored; do not edit |
 | `runtime/python` | `from mica import App` |
 | `runtime/cpp` | `mica::App` |
 | `runtime/go` | `mica.NewApp` |
-| `cli/` | `mica validate\|inspect\|graph\|run` |
-| `examples/demo/` | camera-control (C++), tracker (Python), planner (Go) |
+| `cli/` | Go module providing `mica` |
+| `examples/demo/` | Demo workspace: camera-control (C++), tracker (Python), planner (Go) |
 
-Language APIs: `docs/python-runtime.md`, `docs/cpp-runtime.md`, `docs/go-runtime.md`.  
-Manifests: `docs/application-manifest.md`.  
+Language APIs: `docs/python-runtime.md`, `docs/cpp-runtime.md`, `docs/go-runtime.md`.
+Manifests: `docs/application-manifest.md`.
+Deployment: `docs/deployment.md`.
 Wire semantics: `docs/runtime-semantics.md`.
 
 ## Minimal process
@@ -130,15 +143,16 @@ app.run(main)
 
 `App("tracker")` reads `MICA_NATS_URL` and `MICA_COMPONENT_NAME` when the launcher injects them.
 
-Declare the same contracts in that process's `component.toml`. `mica validate` checks identifiers against `generated/image.binpb`.
+Declare the same contracts in that component's `component.toml`. `mica build` checks identifiers against the workspace descriptor image.
 
 ## Troubleshooting
 
 | Symptom | Check |
 | --- | --- |
 | `buf: command not found` | `./scripts/bootstrap`; use `./scripts/*` so `.tools/bin` is on `PATH` |
-| `missing generated/image.binpb` | `./scripts/generate` |
+| `missing descriptor image` | `mica generate` |
+| `makeself is required` | `./scripts/bootstrap` or set `MICA_MAKESELF` |
 | `failed to connect to transport` | start NATS (`--start-nats` or `nats-server`) |
-| `mica: command not found` | `./scripts/bootstrap` or `python3 -m mica.cli` |
+| `mica: command not found` | `./scripts/bootstrap` or add `.tools/bin` to `PATH` |
 | C++ link / missing `nats.h` | `./scripts/build` from a clean tree after bootstrap |
-| Demo RPC never completes | another process already bound to port 4222; stop leftover `nats-server` |
+| target prerequisite failure | install the missing executable/library/Python package on the target |

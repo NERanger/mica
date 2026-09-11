@@ -13,3 +13,15 @@ calls = [
 ]
 
 provides = []
+
+[build]
+adapter = "go"
+
+[build.go]
+module_dir = "../../.."
+package = "./examples/demo/planner"
+output = "planner"
+
+[artifact]
+kind = "executable"
+path = "planner"

@@ -1,6 +1,8 @@
 # Contracts
 
-All contracts live under `contracts/`.
+An application workspace keeps its contracts under `contracts/`. The MICA
+framework keeps the `mica.v1` protocol contract under `contracts/` in this
+repository.
 
 ## Package naming
 
@@ -10,9 +12,16 @@ Use `{domain}.v{N}`, for example `camera.v1`. The protobuf package is part of wi
 
 ## File layout
 
+Application workspace:
+
 ```
-contracts/camera/v1/camera.proto
-contracts/tracking/v1/tracking.proto
+my-app/contracts/camera/v1/camera.proto
+my-app/contracts/tracking/v1/tracking.proto
+```
+
+MICA framework:
+
+```
 contracts/mica/v1/runtime.proto
 ```
 
@@ -47,8 +56,8 @@ These identifiers appear in `component.toml`. They are not NATS subjects.
 
 Lint: `STANDARD` except `SERVICE_SUFFIX` (V0 services follow the documented `CameraControl` example).
 
-Breaking checks: `FILE` category against `contracts/baseline.binpb`. Update that baseline only when an intentional contract freeze is accepted.
+Breaking checks: `FILE` category against the framework `contracts/baseline.binpb`. Update that baseline only when an intentional contract freeze is accepted.
 
 ## Generated code
 
-Never edit `generated/`. Run `./scripts/generate`. Generated language sources are not committed. `contracts/baseline.binpb` is the breaking-change snapshot.
+Never edit `generated/`. Run `./scripts/generate` for framework contracts and `mica generate` for a workspace. Generated language sources are not committed. `contracts/baseline.binpb` is the framework breaking-change snapshot.

@@ -4,5 +4,4 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 export PATH="$ROOT/.tools/bin:$PATH"
 cd "$ROOT"
 ./scripts/build
-export PYTHONPATH="$ROOT/runtime/python/src:$ROOT/generated/python:$ROOT/examples/demo:${PYTHONPATH:-}"
-exec python3 -m mica.cli run examples/demo/app.toml --start-nats
+exec mica deploy examples/demo/app.toml --local --start-nats

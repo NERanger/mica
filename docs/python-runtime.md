@@ -5,7 +5,7 @@ Package: `mica`. Concurrency: asyncio. Handlers run on the application event loo
 ```python
 from mica import App
 from camera.v1.camera_pb2 import PoseChanged
-from mica.tokens import CameraControl
+from mica_tokens import CameraControl
 
 app = App("tracker")
 
@@ -31,4 +31,4 @@ Event handler exceptions are logged; the process keeps running.
 
 Default RPC timeout: 5 seconds. No retries.
 
-Import generated messages as `camera.v1.camera_pb2`, not `contracts.camera.v1`. The protobuf package is the wire identity.
+`mica generate` writes RPC method tokens and generated messages for the workspace. Import generated messages as `camera.v1.camera_pb2`, not `contracts.camera.v1`, and import workspace tokens from `mica_tokens`. The protobuf package is the wire identity.

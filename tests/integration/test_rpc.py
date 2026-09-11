@@ -7,7 +7,7 @@ import time
 import pytest
 from camera.v1.camera_pb2 import SetPoseRequest
 from mica import App, AppConfig, RpcError, RpcCode
-from mica.tokens import CameraControl
+from mica_tokens import CameraControl
 from tests.conftest import harness_env
 
 

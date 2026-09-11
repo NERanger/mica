@@ -38,8 +38,6 @@ if [[ -f generated/python/mica/v1/runtime_pb2.py ]]; then
   fi
 fi
 
-python3 scripts/generate_tokens.py
-
 if [[ ! -f contracts/baseline.binpb ]]; then
   cp generated/image.binpb contracts/baseline.binpb
   echo "wrote contracts/baseline.binpb"

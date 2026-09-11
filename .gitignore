@@ -8,9 +8,12 @@
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
+/.mica/
+/examples/demo/.mica/
+/examples/demo/generated/
+/examples/demo/dist/
 /runtime/python/src/mica/runtime_pb2.py
 /runtime/python/src/mica/runtime_pb2.pyi
-/runtime/python/src/mica/_tokens_gen.py
 *.so
 *.a
 *.o

@@ -2,11 +2,13 @@
 
 **MICA = Multi-language Interprocess Contract Architecture**
 
-Contract-first runtime for polyglot, multi-process applications.
+Contract-first application platform for polyglot, multi-process applications.
 
 > Processes communicate through versioned contracts. They do not depend on each other's implementation.
 
 > NATS is MICA's V0 transport implementation, not MICA's application programming model.
+
+One application is one workspace, described by `app.toml`. The `mica` CLI owns the workspace lifecycle: initialize, generate, build, test, graph, and deploy.
 
 V0 languages: Python, C++, Go. Transport: NATS Core.
 
@@ -24,13 +26,24 @@ Developer setup, demo, and daily loop: [docs/quick-start.md](docs/quick-start.md
 ./scripts/bootstrap
 ./scripts/build
 ./scripts/test
-mica validate examples/demo/app.toml
-mica inspect examples/demo/app.toml
 mica graph examples/demo/app.toml
 ./scripts/run-demo
 ```
 
-`scripts/run-demo` starts a local `nats-server` and the three-language demo. Ctrl+C stops it.
+`scripts/run-demo` starts a local `nats-server` and runs the three-language demo through `mica deploy --local`. Ctrl+C stops it.
+
+## Lifecycle
+
+```
+mica init        create an application workspace
+mica generate    contracts -> generated code, descriptor image, tokens
+mica build       generate + validate + build components
+mica test        component and application tests
+mica graph       static contract communication graph
+mica deploy      build, package as a makeself .run, execute locally or over SSH
+```
+
+`mica deploy` produces a self-contained `.run` artifact. The target machine executes it without installing MICA, Go, or a build toolchain. See [docs/deployment.md](docs/deployment.md).
 
 ## Demo
 
@@ -49,11 +62,11 @@ The loop is bounded to three `SetPose` calls.
 ## Repository
 
 ```
-contracts/     protobuf source of truth
-generated/     Buf output (not committed; run ./scripts/generate)
+contracts/     framework mica.v1 contract source
+generated/     framework Buf output (not committed; run ./scripts/generate)
 runtime/       Python, C++, Go App APIs
-cli/           mica validate|inspect|graph|run
-examples/demo  three-language application
+cli/           Go module providing the mica workspace CLI
+examples/demo  demo workspace with its own contracts and components
 tests/         contract, compatibility, integration, failure
 docs/          current-state documentation
 scripts/       bootstrap, generate, build, test, run-demo

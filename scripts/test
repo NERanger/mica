@@ -10,5 +10,9 @@ buf breaking --against contracts/baseline.binpb
 python3 -m pytest
 ctest --test-dir build --output-on-failure -R '^mica'
 go test ./runtime/go/mica ./tests/compatibility/go
+go -C cli test ./...
+mica test examples/demo/app.toml --no-generate
+mica deploy examples/demo/app.toml --output build/demo.run --no-generate
+./build/demo.run --check
 
 echo "test ok"

@@ -12,6 +12,5 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 enable_testing()
 
 add_subdirectory(runtime/cpp)
-add_subdirectory(examples/demo/camera-control)
 add_subdirectory(tests/harness/cpp)
 add_subdirectory(tests/compatibility/cpp)

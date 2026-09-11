@@ -2,15 +2,22 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 export PATH="$ROOT/.tools/bin:$PATH"
+TOOLS="$ROOT/.tools/bin"
 cd "$ROOT"
 
 ./scripts/generate
 
+mkdir -p build/bin
+go -C cli build -o "$TOOLS/mica" ./cmd/mica
+go -C cli build -o "$TOOLS/mica-launcher" ./cmd/mica-launcher
+
+"$TOOLS/mica" generate examples/demo/app.toml
+
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --parallel
 
-mkdir -p build/bin
-go build -o build/bin/planner ./examples/demo/planner
 go build -o build/bin/mica-go-harness ./tests/harness/go
+
+"$TOOLS/mica" build examples/demo/app.toml --no-generate
 
 echo "build ok"

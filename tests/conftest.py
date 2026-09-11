@@ -92,8 +92,7 @@ def harness_env(nats_url: str) -> dict[str, str]:
     env["PYTHONPATH"] = os.pathsep.join(
         [
             str(ROOT / "runtime" / "python" / "src"),
-            str(ROOT / "generated" / "python"),
-            str(ROOT / "examples" / "demo"),
+            str(ROOT / "examples" / "demo" / "generated" / "python"),
             env.get("PYTHONPATH", ""),
         ]
     )

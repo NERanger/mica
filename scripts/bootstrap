@@ -56,8 +56,18 @@ if ! command -v protoc-gen-go >/dev/null; then
   go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.5
 fi
 
-python3 -m pip install -e "${ROOT}[dev]"
+if [[ ! -x "$TOOLS/makeself" || ! -f "$TOOLS/makeself-header.sh" ]]; then
+  echo "installing makeself into .tools/bin"
+  curl -fsSL -o "$TOOLS/makeself" "https://raw.githubusercontent.com/megastep/makeself/release-2.7.1/makeself.sh"
+  curl -fsSL -o "$TOOLS/makeself-header.sh" "https://raw.githubusercontent.com/megastep/makeself/release-2.7.1/makeself-header.sh"
+  chmod 755 "$TOOLS/makeself"
+fi
+
+python3 -m pip install -e "${ROOT}/runtime/python[dev]"
 go -C "$ROOT" mod download
+go -C "$ROOT/cli" mod download
+go -C "$ROOT/cli" build -o "$TOOLS/mica" ./cmd/mica
+go -C "$ROOT/cli" build -o "$TOOLS/mica-launcher" ./cmd/mica-launcher
 
 echo "bootstrap ok"
 echo "add $TOOLS to PATH, or use the repo scripts which do so automatically"

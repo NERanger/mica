@@ -8,80 +8,8 @@ import pytest
 
 from camera.v1.camera_pb2 import PoseChanged, SetPoseRequest
 from mica import App, AppConfig, RpcError, RpcCode, TransportError
-from mica.cli.main import main
-from mica.tokens import CameraControl
-from tests.conftest import ROOT, harness_env
-
-
-def test_invalid_toml(tmp_path: Path) -> None:
-    path = tmp_path / "bad.toml"
-    path.write_text("this is not toml = [", encoding="utf-8")
-    assert main(["validate", str(path)]) == 1
-
-
-def test_duplicate_process_names(tmp_path: Path) -> None:
-    app = tmp_path / "app.toml"
-    component = tmp_path / "component.toml"
-    component.write_text(
-        """
-[component]
-name = "x"
-language = "python"
-publishes = []
-subscribes = []
-calls = []
-provides = []
-""",
-        encoding="utf-8",
-    )
-    app.write_text(
-        """
-[app]
-name = "dup"
-
-[transport]
-kind = "nats"
-url = "nats://127.0.0.1:4222"
-
-[[process]]
-name = "a"
-command = "true"
-component = "./component.toml"
-
-[[process]]
-name = "a"
-command = "true"
-component = "./component.toml"
-""",
-        encoding="utf-8",
-    )
-    assert main(["validate", str(app)]) == 1
-
-
-def test_invalid_contract_identifier() -> None:
-    assert main(["validate", str(ROOT / "examples" / "demo" / "app.toml")]) == 0
-    # mutate via a temp copy
-    import tempfile
-    import shutil
-
-    with tempfile.TemporaryDirectory() as raw:
-        dest = Path(raw)
-        shutil.copytree(ROOT / "examples" / "demo", dest / "demo")
-        component = dest / "demo" / "tracker" / "component.toml"
-        component.write_text(
-            """
-[component]
-name = "tracker"
-language = "python"
-publishes = ["does.not.Exist"]
-subscribes = []
-calls = []
-provides = []
-""",
-            encoding="utf-8",
-        )
-        # commands in copied app.toml still point at build binaries; validation only needs contracts
-        assert main(["validate", str(dest / "demo" / "app.toml")]) == 1
+from mica_tokens import CameraControl
+from tests.conftest import harness_env
 
 
 @pytest.mark.asyncio
