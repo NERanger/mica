@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from camera.v1.camera_pb2 import PoseChanged, SetPoseRequest
+from jobs.v1.jobs_pb2 import JobCompleted, RunRequest
 from mica import App, AppConfig, RpcError, RpcCode, TransportError
-from mica_tokens import CameraControl
+from mica_tokens import Worker
 from tests.conftest import harness_env
 
 
@@ -39,8 +39,8 @@ async def test_nats_disconnected(nats_server_bin: str) -> None:
         proc.kill()
         proc.wait(timeout=2)
         await asyncio.sleep(0.2)
-        event = PoseChanged()
-        event.camera_id.value = "cam"
+        event = JobCompleted()
+        event.job_id.value = "job"
         with pytest.raises((TransportError, Exception)):
             await app.publish(event)
         await app.shutdown()
@@ -61,13 +61,13 @@ async def test_malformed_event_does_not_crash(nats_url: str) -> None:
     app = App("sub", AppConfig(name="sub", transport_url=nats_url))
     called = False
 
-    @app.subscribe(PoseChanged)
-    async def on_event(event: PoseChanged) -> None:
+    @app.subscribe(JobCompleted)
+    async def on_event(event: JobCompleted) -> None:
         nonlocal called
         called = True
 
     await app.start()
-    await app._nc.publish("event.camera.v1.PoseChanged", b"not-a-protobuf")
+    await app._nc.publish("event.jobs.v1.JobCompleted", b"not-a-protobuf")
     await asyncio.sleep(0.3)
     assert called is False
     await app.shutdown()
@@ -78,15 +78,15 @@ async def test_subscriber_handler_failure(nats_url: str) -> None:
     app = App("sub", AppConfig(name="sub", transport_url=nats_url))
     saw = asyncio.Event()
 
-    @app.subscribe(PoseChanged)
-    async def on_event(event: PoseChanged) -> None:
+    @app.subscribe(JobCompleted)
+    async def on_event(event: JobCompleted) -> None:
         saw.set()
         raise RuntimeError("handler boom")
 
     await app.start()
-    event = PoseChanged()
-    event.camera_id.value = "cam"
-    event.pose.pan = 1
+    event = JobCompleted()
+    event.job_id.value = "job"
+    event.output = "done:task-1"
     await app.publish(event)
     await asyncio.wait_for(saw.wait(), timeout=2)
     assert app.health().state == "RUNNING"
@@ -96,16 +96,16 @@ async def test_subscriber_handler_failure(nats_url: str) -> None:
 @pytest.mark.asyncio
 async def test_rpc_internal_error(nats_url: str, cpp_harness) -> None:
     env = harness_env(nats_url)
-    server = subprocess.Popen([str(cpp_harness), "serve-setpose", "internal"], env=env)
+    server = subprocess.Popen([str(cpp_harness), "serve-run", "internal"], env=env)
     try:
         await asyncio.sleep(0.4)
         app = App("client", AppConfig(name="client", transport_url=nats_url))
         await app.start()
-        req = SetPoseRequest()
-        req.camera_id.value = "cam-1"
-        req.pose.pan = 1
+        req = RunRequest()
+        req.job_id.value = "job-1"
+        req.input = "task-1"
         with pytest.raises(RpcError) as raised:
-            await app.call(CameraControl.SetPose, req, timeout=2)
+            await app.call(Worker.Run, req, timeout=2)
         assert raised.value.code == RpcCode.INTERNAL
         await app.shutdown()
     finally:

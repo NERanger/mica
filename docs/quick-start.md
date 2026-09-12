@@ -44,31 +44,34 @@ mica graph examples/demo/app.toml
 
 ## What the demo does
 
-Three processes, one bounded loop (three `SetPose` calls):
+Three processes, three languages, one bounded loop (three `Run` calls):
 
 ```
-Go planner
-  -- RPC camera.v1.CameraControl.SetPose -->
-C++ camera-control
-  -- event camera.v1.PoseChanged -->
-Python tracker
-  -- event tracking.v1.PersonTracked -->
-Go planner
+Go client
+  -- RPC jobs.v1.Worker.Run -->
+C++ worker
+  -- event jobs.v1.JobCompleted -->
+Python recorder
+  -- event audit.v1.JobRecorded -->
+Go client
 ```
 
-You should see log lines like:
+The client submits a job over RPC, the worker announces the finished job
+as an event, the recorder turns it into an audit record, and the client
+submits the next job. You should see log lines like:
 
 ```
-[planner] SetPose RPC completed accepted=true iteration=1
-[tracker] received PoseChanged ...
-[tracker] published PersonTracked
-[planner] received PersonTracked ...
-... iteration=3 ...
+[client] Run RPC completed accepted=true job=job-1
+[worker] Run accepted input=task-1
+[recorder] received JobCompleted job=job-1 output=done:task-1
+[recorder] published JobRecorded
+[client] received JobRecorded job=job-1 summary=recorded done:task-1
+... job=job-3 ...
 ```
 
 A `transport error: nats: unexpected EOF` on shutdown is the Python client noticing NATS going away. It is not a demo failure.
 
-`examples/demo` is a workspace: `app.toml`, `contracts/`, `components`, and generated code all live under it. `mica build examples/demo/app.toml` builds it; `mica graph examples/demo/app.toml` shows its topology.
+`examples/demo` is a workspace: `app.toml`, `contracts/`, `components/`, and generated code all live under it. `mica build examples/demo/app.toml` builds it; `mica graph examples/demo/app.toml` shows its topology. `examples/demo/README.md` walks through every file and what it demonstrates.
 
 ## Your own application
 
@@ -116,7 +119,7 @@ Buf breaking checks use `contracts/baseline.binpb` for the framework contracts a
 | `runtime/cpp` | `mica::App` |
 | `runtime/go` | `mica.NewApp` |
 | `cli/` | Go module providing `mica` |
-| `examples/demo/` | Demo workspace: camera-control (C++), tracker (Python), planner (Go) |
+| `examples/demo/` | Quick-start demo workspace: client (Go), worker (C++), recorder (Python); see `examples/demo/README.md` |
 
 Language APIs: `docs/python-runtime.md`, `docs/cpp-runtime.md`, `docs/go-runtime.md`.
 Manifests: `docs/application-manifest.md`.
@@ -127,12 +130,12 @@ Wire semantics: `docs/runtime-semantics.md`.
 
 ```python
 from mica import App
-from camera.v1.camera_pb2 import PoseChanged
+from jobs.v1.jobs_pb2 import JobCompleted
 
-app = App("tracker")
+app = App("recorder")
 
-@app.subscribe(PoseChanged)
-async def on_pose(event: PoseChanged) -> None:
+@app.subscribe(JobCompleted)
+async def on_completed(event: JobCompleted) -> None:
     print(event)
 
 async def main():
@@ -141,7 +144,7 @@ async def main():
 app.run(main)
 ```
 
-`App("tracker")` reads `MICA_NATS_URL` and `MICA_COMPONENT_NAME` when the launcher injects them.
+`App("recorder")` reads `MICA_NATS_URL` and `MICA_COMPONENT_NAME` when the launcher injects them.
 
 Declare the same contracts in that component's `component.toml`. `mica build` checks identifiers against the workspace descriptor image.
 

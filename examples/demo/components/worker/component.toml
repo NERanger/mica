@@ -1,0 +1,37 @@
+[component]
+name = "worker"
+language = "cpp"
+
+# The contract usage declaration. mica build checks every identifier
+# against the workspace descriptor image generated from contracts/, so a
+# typo here fails the build, not the run.
+publishes = [
+  "jobs.v1.JobCompleted",
+]
+
+subscribes = []
+
+calls = []
+
+provides = [
+  "jobs.v1.Worker.Run",
+]
+
+# Components own their native build declaration; MICA owns the lifecycle.
+# The cmake adapter invokes CMakeLists.txt with MICA_SDK_DIR and
+# MICA_GENERATED_DIR pointing at the runtime and the generated contracts.
+[build]
+adapter = "cmake"
+
+[build.cmake]
+source_dir = "."
+target = "worker"
+
+[artifact]
+kind = "executable"
+path = "worker"
+
+# Deployment prerequisite checks run on the target before this
+# component starts.
+[requirements]
+libraries = ["libstdc++.so.6"]

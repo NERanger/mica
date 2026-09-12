@@ -3,19 +3,19 @@
 Handlers run in nats.go goroutines. `Call` uses `context.Context` for deadline and local cancellation.
 
 ```go
-app := mica.NewApp("planner")
+app := mica.NewApp("client")
 
-app.Subscribe((*trackingv1.PersonTracked)(nil),
+app.Subscribe((*auditv1.JobRecorded)(nil),
     func(ctx context.Context, event proto.Message) error {
         return nil
     })
 
-app.Serve(tokens.CameraControlSetPose,
+app.Serve(tokens.WorkerRun,
     func(ctx context.Context, req proto.Message) (proto.Message, error) {
-        return &camerav1.SetPoseResponse{Accepted: true}, nil
+        return &jobsv1.RunResponse{Accepted: true}, nil
     })
 
-resp, err := app.Call(ctx, tokens.CameraControlSetPose, request)
+resp, err := app.Call(ctx, tokens.WorkerRun, request)
 ```
 
 Return `mica.NewRpcError(code, message)` for a structured status. Other errors become `INTERNAL`.

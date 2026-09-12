@@ -48,16 +48,21 @@ mica deploy      build, package as a makeself .run, execute locally or over SSH
 ## Demo
 
 ```
-Go planner
-  -- RPC camera.v1.CameraControl.SetPose -->
-C++ camera-control
-  -- event camera.v1.PoseChanged -->
-Python tracker
-  -- event tracking.v1.PersonTracked -->
-Go planner
+Go client
+  -- RPC jobs.v1.Worker.Run -->
+C++ worker
+  -- event jobs.v1.JobCompleted -->
+Python recorder
+  -- event audit.v1.JobRecorded -->
+Go client
 ```
 
-The loop is bounded to three `SetPose` calls.
+The client submits jobs over RPC; the worker announces completions as
+events; the recorder turns them into an audit trail that drives the next
+iteration. The loop is bounded to three `Run` calls.
+
+`examples/demo/README.md` is a guided walkthrough of the workspace and
+the concepts it demonstrates.
 
 ## Repository
 
@@ -66,7 +71,7 @@ contracts/     framework mica.v1 contract source
 generated/     framework Buf output (not committed; run ./scripts/generate)
 runtime/       Python, C++, Go App APIs
 cli/           Go module providing the mica workspace CLI
-examples/demo  demo workspace with its own contracts and components
+examples/demo  quick-start demo workspace (see examples/demo/README.md)
 tests/         contract, compatibility, integration, failure
 docs/          current-state documentation
 scripts/       bootstrap, generate, build, test, run-demo

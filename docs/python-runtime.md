@@ -4,20 +4,20 @@ Package: `mica`. Concurrency: asyncio. Handlers run on the application event loo
 
 ```python
 from mica import App
-from camera.v1.camera_pb2 import PoseChanged
-from mica_tokens import CameraControl
+from jobs.v1.jobs_pb2 import JobCompleted
+from mica_tokens import Worker
 
-app = App("tracker")
+app = App("recorder")
 
-@app.subscribe(PoseChanged)
-async def on_pose(event: PoseChanged) -> None:
+@app.subscribe(JobCompleted)
+async def on_completed(event: JobCompleted) -> None:
     ...
 
-@app.serve(CameraControl.SetPose)
-async def set_pose(request):
+@app.serve(Worker.Run)
+async def run_job(request):
     ...
 
-response = await app.call(CameraControl.SetPose, request, timeout=1.0)
+response = await app.call(Worker.Run, request, timeout=1.0)
 app.run(main)
 ```
 
@@ -31,4 +31,4 @@ Event handler exceptions are logged; the process keeps running.
 
 Default RPC timeout: 5 seconds. No retries.
 
-`mica generate` writes RPC method tokens and generated messages for the workspace. Import generated messages as `camera.v1.camera_pb2`, not `contracts.camera.v1`, and import workspace tokens from `mica_tokens`. The protobuf package is the wire identity.
+`mica generate` writes RPC method tokens and generated messages for the workspace. Import generated messages as `jobs.v1.jobs_pb2`, not `contracts.jobs.v1`, and import workspace tokens from `mica_tokens`. The protobuf package is the wire identity.

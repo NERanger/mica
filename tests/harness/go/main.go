@@ -8,9 +8,9 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	camerav1 "mica/examples/demo/generated/go/camera/v1"
+	auditv1 "mica/examples/demo/generated/go/audit/v1"
 	"mica/examples/demo/generated/go/mica/tokens"
-	trackingv1 "mica/examples/demo/generated/go/tracking/v1"
+	jobsv1 "mica/examples/demo/generated/go/jobs/v1"
 	"mica/runtime/go/mica"
 )
 
@@ -28,7 +28,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		event := &camerav1.PoseChanged{}
+		event := &jobsv1.JobCompleted{}
 		if err := proto.Unmarshal(in, event); err != nil {
 			fmt.Fprintln(os.Stderr, "parse failed")
 			os.Exit(1)
@@ -46,13 +46,13 @@ func main() {
 	app := mica.NewApp("go-harness")
 	ctx := context.Background()
 	switch cmd {
-	case "publish-pose":
+	case "publish-completed":
 		if err := app.Start(); err != nil {
 			panic(err)
 		}
-		event := &camerav1.PoseChanged{
-			CameraId:    &camerav1.CameraId{Value: "cam-1"},
-			Pose:        &camerav1.Pose{Pan: 1.5, Tilt: 2.5, Zoom: 3.5},
+		event := &jobsv1.JobCompleted{
+			JobId:       &jobsv1.JobId{Value: "job-1"},
+			Output:      "done:task-1",
 			TimestampNs: 42,
 		}
 		if err := app.Publish(ctx, event); err != nil {
@@ -60,11 +60,11 @@ func main() {
 		}
 		time.Sleep(200 * time.Millisecond)
 		_ = app.Shutdown()
-	case "subscribe-pose":
+	case "subscribe-completed":
 		got := make(chan struct{}, 1)
-		app.Subscribe((*camerav1.PoseChanged)(nil), func(ctx context.Context, msg proto.Message) error {
-			event := msg.(*camerav1.PoseChanged)
-			fmt.Printf("got pan=%v\n", event.Pose.Pan)
+		app.Subscribe((*jobsv1.JobCompleted)(nil), func(ctx context.Context, msg proto.Message) error {
+			event := msg.(*jobsv1.JobCompleted)
+			fmt.Printf("got output=%v\n", event.Output)
 			got <- struct{}{}
 			return nil
 		})
@@ -77,11 +77,11 @@ func main() {
 		case <-time.After(5 * time.Second):
 			os.Exit(1)
 		}
-	case "subscribe-person":
+	case "subscribe-recorded":
 		got := make(chan struct{}, 1)
-		app.Subscribe((*trackingv1.PersonTracked)(nil), func(ctx context.Context, msg proto.Message) error {
-			event := msg.(*trackingv1.PersonTracked)
-			fmt.Printf("got x=%v\n", event.X)
+		app.Subscribe((*auditv1.JobRecorded)(nil), func(ctx context.Context, msg proto.Message) error {
+			event := msg.(*auditv1.JobRecorded)
+			fmt.Printf("got job=%v\n", event.JobId)
 			got <- struct{}{}
 			return nil
 		})
@@ -94,41 +94,41 @@ func main() {
 		case <-time.After(5 * time.Second):
 			os.Exit(1)
 		}
-	case "serve-setpose":
+	case "serve-run":
 		behavior := "ok"
 		if len(os.Args) > 2 {
 			behavior = os.Args[2]
 		}
-		app.Serve(tokens.CameraControlSetPose, func(ctx context.Context, msg proto.Message) (proto.Message, error) {
+		app.Serve(tokens.WorkerRun, func(ctx context.Context, msg proto.Message) (proto.Message, error) {
 			switch behavior {
 			case "invalid":
-				return nil, mica.NewRpcError(mica.RpcCodeInvalidArgument, "bad pose")
+				return nil, mica.NewRpcError(mica.RpcCodeInvalidArgument, "bad job")
 			case "internal":
 				return nil, fmt.Errorf("boom")
 			case "sleep":
 				time.Sleep(3 * time.Second)
 			}
-			return &camerav1.SetPoseResponse{Accepted: true}, nil
+			return &jobsv1.RunResponse{Accepted: true}, nil
 		})
 		if err := app.Run(context.Background()); err != nil {
 			panic(err)
 		}
-	case "call-setpose":
+	case "call-run":
 		if err := app.Start(); err != nil {
 			panic(err)
 		}
-		req := &camerav1.SetPoseRequest{
-			CameraId: &camerav1.CameraId{Value: "cam-1"},
-			Pose:     &camerav1.Pose{Pan: 1},
+		req := &jobsv1.RunRequest{
+			JobId: &jobsv1.JobId{Value: "job-1"},
+			Input: "task-1",
 		}
 		callCtx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-		resp, err := app.Call(callCtx, tokens.CameraControlSetPose, req)
+		resp, err := app.Call(callCtx, tokens.WorkerRun, req)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err.Error())
 			os.Exit(1)
 		}
-		fmt.Printf("accepted=%v\n", resp.(*camerav1.SetPoseResponse).Accepted)
+		fmt.Printf("accepted=%v\n", resp.(*jobsv1.RunResponse).Accepted)
 		_ = app.Shutdown()
 	default:
 		os.Exit(2)

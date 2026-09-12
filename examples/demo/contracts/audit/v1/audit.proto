@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+// audit.v1 is the demo's second contract package, published by the
+// Python recorder. Separate packages show that contracts are owned per
+// domain: the recorder's consumers depend on this file, not on the
+// recorder's code.
+package audit.v1;
+
+option go_package = "mica/examples/demo/generated/go/audit/v1;auditv1";
+
+message JobRecorded {
+  string job_id = 1;
+  string summary = 2;
+  uint64 timestamp_ns = 3;
+}

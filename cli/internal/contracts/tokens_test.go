@@ -15,23 +15,23 @@ func testImage(t *testing.T) string {
 	fds := &descriptorpb.FileDescriptorSet{
 		File: []*descriptorpb.FileDescriptorProto{
 			{
-				Name:    proto.String("camera/v1/camera.proto"),
-				Package: proto.String("camera.v1"),
+				Name:    proto.String("jobs/v1/jobs.proto"),
+				Package: proto.String("jobs.v1"),
 				Options: &descriptorpb.FileOptions{
-					GoPackage: proto.String("example.com/app/generated/go/camera/v1;camerav1"),
+					GoPackage: proto.String("example.com/app/generated/go/jobs/v1;jobsv1"),
 				},
 				MessageType: []*descriptorpb.DescriptorProto{
-					{Name: proto.String("SetPoseRequest")},
-					{Name: proto.String("SetPoseResponse")},
+					{Name: proto.String("RunRequest")},
+					{Name: proto.String("RunResponse")},
 				},
 				Service: []*descriptorpb.ServiceDescriptorProto{
 					{
-						Name: proto.String("CameraControl"),
+						Name: proto.String("Worker"),
 						Method: []*descriptorpb.MethodDescriptorProto{
 							{
-								Name:       proto.String("SetPose"),
-								InputType:  proto.String(".camera.v1.SetPoseRequest"),
-								OutputType: proto.String(".camera.v1.SetPoseResponse"),
+								Name:       proto.String("Run"),
+								InputType:  proto.String(".jobs.v1.RunRequest"),
+								OutputType: proto.String(".jobs.v1.RunResponse"),
 							},
 						},
 					},
@@ -60,24 +60,24 @@ func TestWriteTokens(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(python), "class CameraControl:") {
+	if !strings.Contains(string(python), "class Worker:") {
 		t.Fatalf("python tokens missing service class:\n%s", python)
 	}
 	header, err := os.ReadFile(filepath.Join(generated, "cpp", "mica", "tokens.hpp"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(header), "CameraControl_SetPose") {
+	if !strings.Contains(string(header), "Worker_Run") {
 		t.Fatalf("cpp tokens missing method:\n%s", header)
 	}
 	goTokens, err := os.ReadFile(filepath.Join(generated, "go", "mica", "tokens", "tokens.go"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(goTokens), "CameraControlSetPose") {
+	if !strings.Contains(string(goTokens), "WorkerRun") {
 		t.Fatalf("go tokens missing method:\n%s", goTokens)
 	}
-	if strings.Contains(string(goTokens), "camerav1.SetPoseRequest.SetPoseRequest") {
+	if strings.Contains(string(goTokens), "jobsv1.RunRequest.RunRequest") {
 		t.Fatalf("go tokens doubled the type name:\n%s", goTokens)
 	}
 }
@@ -88,10 +88,10 @@ func TestLoadImage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !catalog.IsRPC("camera.v1.CameraControl.SetPose") {
+	if !catalog.IsRPC("jobs.v1.Worker.Run") {
 		t.Fatal("method not catalogued")
 	}
-	if !catalog.IsEvent("camera.v1.SetPoseRequest") {
+	if !catalog.IsEvent("jobs.v1.RunRequest") {
 		t.Fatal("message not catalogued")
 	}
 }

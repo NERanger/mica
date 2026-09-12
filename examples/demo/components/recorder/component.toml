@@ -1,0 +1,42 @@
+[component]
+name = "recorder"
+language = "python"
+
+publishes = [
+  "audit.v1.JobRecorded",
+]
+
+subscribes = [
+  "jobs.v1.JobCompleted",
+]
+
+calls = []
+
+provides = []
+
+# The python adapter packages this directory as-is; imports resolve
+# through the generated code and runtime shipped beside it.
+[build]
+adapter = "python"
+
+[build.python]
+source = "."
+module = "recorder"
+
+[artifact]
+kind = "python"
+path = "."
+
+# How the launcher starts this component inside the deployed artifact.
+[run]
+command = "python3"
+args = ["-m", "recorder"]
+
+# Prerequisite checks for the target machine: executables, Python
+# version, and pip packages.
+[requirements]
+executables = ["python3"]
+
+[requirements.python]
+version = ">=3.12"
+packages = ["nats-py>=2.9.0", "protobuf>=4.21.12,<6"]

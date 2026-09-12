@@ -29,7 +29,7 @@ func TestShellQuote(t *testing.T) {
 
 func TestPythonRuntimeRequirement(t *testing.T) {
 	component := &manifest.Component{
-		Name:     "tracker",
+		Name:     "recorder",
 		Artifact: manifest.ArtifactSpec{Kind: manifest.ArtifactPythonSource},
 		Requirements: manifest.Requirements{
 			Python: &manifest.PythonRequirements{Packages: []string{"protobuf>=4.21.12,<6"}},

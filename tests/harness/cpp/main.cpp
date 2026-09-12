@@ -5,10 +5,10 @@
 #include <string>
 #include <thread>
 
-#include "camera/v1/camera.pb.h"
+#include "audit/v1/audit.pb.h"
+#include "jobs/v1/jobs.pb.h"
 #include "mica/app.hpp"
 #include "mica/tokens.hpp"
-#include "tracking/v1/tracking.pb.h"
 
 namespace {
 
@@ -16,12 +16,10 @@ void usage() {
   std::cerr << "usage: mica-cpp-harness <command> [args]\n";
 }
 
-camera::v1::PoseChanged sample_pose() {
-  camera::v1::PoseChanged event;
-  event.mutable_camera_id()->set_value("cam-1");
-  event.mutable_pose()->set_pan(1.5);
-  event.mutable_pose()->set_tilt(2.5);
-  event.mutable_pose()->set_zoom(3.5);
+jobs::v1::JobCompleted sample_completed() {
+  jobs::v1::JobCompleted event;
+  event.mutable_job_id()->set_value("job-1");
+  event.set_output("done:task-1");
   event.set_timestamp_ns(42);
   return event;
 }
@@ -29,7 +27,7 @@ camera::v1::PoseChanged sample_pose() {
 int proto_roundtrip(const std::string& in_path, const std::string& out_path) {
   std::ifstream in(in_path, std::ios::binary);
   std::string bytes((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-  camera::v1::PoseChanged event;
+  jobs::v1::JobCompleted event;
   if (!event.ParseFromString(bytes)) {
     std::cerr << "parse failed\n";
     return 1;
@@ -63,17 +61,17 @@ int main(int argc, char** argv) {
     app.run();
     return 1;
   }
-  if (cmd == "publish-pose") {
+  if (cmd == "publish-completed") {
     app.start();
-    app.publish(sample_pose());
+    app.publish(sample_completed());
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
     app.shutdown();
     return 0;
   }
-  if (cmd == "subscribe-pose") {
+  if (cmd == "subscribe-completed") {
     std::atomic<bool> got{false};
-    app.subscribe<camera::v1::PoseChanged>([&](const camera::v1::PoseChanged& event) {
-      std::cout << "got pan=" << event.pose().pan() << std::endl;
+    app.subscribe<jobs::v1::JobCompleted>([&](const jobs::v1::JobCompleted& event) {
+      std::cout << "got output=" << event.output() << std::endl;
       got = true;
     });
     app.start();
@@ -83,11 +81,11 @@ int main(int argc, char** argv) {
     app.shutdown();
     return got.load() ? 0 : 1;
   }
-  if (cmd == "serve-setpose") {
+  if (cmd == "serve-run") {
     std::string behavior = argc > 2 ? argv[2] : "ok";
-    app.serve(mica::tokens::CameraControl_SetPose, [&](const camera::v1::SetPoseRequest& request) {
+    app.serve(mica::tokens::Worker_Run, [&](const jobs::v1::RunRequest& request) {
       if (behavior == "invalid") {
-        throw mica::RpcError(mica::RpcCode::InvalidArgument, "bad pose");
+        throw mica::RpcError(mica::RpcCode::InvalidArgument, "bad job");
       }
       if (behavior == "internal") {
         throw std::runtime_error("boom");
@@ -95,7 +93,7 @@ int main(int argc, char** argv) {
       if (behavior == "sleep") {
         std::this_thread::sleep_for(std::chrono::seconds(3));
       }
-      camera::v1::SetPoseResponse response;
+      jobs::v1::RunResponse response;
       response.set_accepted(true);
       (void)request;
       return response;
@@ -103,14 +101,14 @@ int main(int argc, char** argv) {
     app.run();
     return 0;
   }
-  if (cmd == "call-setpose") {
+  if (cmd == "call-run") {
     app.start();
-    camera::v1::SetPoseRequest request;
-    request.mutable_camera_id()->set_value("cam-1");
-    request.mutable_pose()->set_pan(1);
+    jobs::v1::RunRequest request;
+    request.mutable_job_id()->set_value("job-1");
+    request.set_input("task-1");
     int rc = 0;
     try {
-      auto response = app.call(mica::tokens::CameraControl_SetPose, request,
+      auto response = app.call(mica::tokens::Worker_Run, request,
                                std::chrono::milliseconds(1000));
       std::cout << "accepted=" << response.accepted() << std::endl;
     } catch (const mica::RpcError& err) {

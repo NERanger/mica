@@ -6,17 +6,17 @@ repository.
 
 ## Package naming
 
-Use `{domain}.v{N}`, for example `camera.v1`. The protobuf package is part of wire identity.
+Use `{domain}.v{N}`, for example `jobs.v1`. The protobuf package is part of wire identity.
 
-`camera.v1.PoseChanged` and `camera.v2.PoseChanged` are different contracts and different subjects.
+`jobs.v1.JobCompleted` and `jobs.v2.JobCompleted` are different contracts and different subjects.
 
 ## File layout
 
 Application workspace:
 
 ```
-my-app/contracts/camera/v1/camera.proto
-my-app/contracts/tracking/v1/tracking.proto
+my-app/contracts/jobs/v1/jobs.proto
+my-app/contracts/audit/v1/audit.proto
 ```
 
 MICA framework:
@@ -31,9 +31,9 @@ The directory matches the package.
 
 - Messages: PascalCase
 - Fields: lower_snake_case
-- Services: PascalCase (V0 example: `CameraControl`)
+- Services: PascalCase (V0 example: `Worker`)
 - RPCs: PascalCase
-- Events: past-tense or fact names (`PoseChanged`, `PersonTracked`)
+- Events: past-tense or fact names (`JobCompleted`, `JobRecorded`)
 
 ## Evolution
 
@@ -54,7 +54,7 @@ These identifiers appear in `component.toml`. They are not NATS subjects.
 
 `buf.yaml` and `buf.gen.yaml` are YAML because Buf v2 requires YAML. This is a third-party constraint. MICA-owned configuration is TOML.
 
-Lint: `STANDARD` except `SERVICE_SUFFIX` (V0 services follow the documented `CameraControl` example).
+Lint: `STANDARD` except `SERVICE_SUFFIX` (V0 services follow the documented `Worker` example).
 
 Breaking checks: `FILE` category against the framework `contracts/baseline.binpb`. Update that baseline only when an intentional contract freeze is accepted.
 

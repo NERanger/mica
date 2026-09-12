@@ -1,22 +1,37 @@
+# One application is one workspace, rooted at this file.
+# The mica CLI owns the workspace lifecycle: generate, build, test, graph, deploy.
+
 [app]
 name = "demo"
 shutdown_timeout_ms = 5000
 
+# V0 transport is NATS Core. Application code never sees this URL; it talks
+# contracts and generated tokens, so the transport can change without
+# touching components.
 [transport]
 kind = "nats"
 url = "nats://127.0.0.1:4222"
 
+# Three processes, three languages, zero implementation dependencies.
+# Each entry points at a component manifest declaring its language, build,
+# and the contracts it uses.
+
+# Go client: drives the loop by calling the Worker.Run RPC and subscribing
+# to audit.v1.JobRecorded for the next iteration.
 [[process]]
-name = "camera-control"
-component = "./camera-control/component.toml"
+name = "client"
+component = "./components/client/component.toml"
 restart = "never"
 
+# C++ worker: serves jobs.v1.Worker.Run and publishes jobs.v1.JobCompleted.
 [[process]]
-name = "tracker"
-component = "./tracker/component.toml"
+name = "worker"
+component = "./components/worker/component.toml"
 restart = "never"
 
+# Python recorder: subscribes to jobs.v1.JobCompleted and publishes
+# audit.v1.JobRecorded.
 [[process]]
-name = "planner"
-component = "./planner/component.toml"
+name = "recorder"
+component = "./components/recorder/component.toml"
 restart = "never"

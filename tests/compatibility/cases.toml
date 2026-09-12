@@ -1,11 +1,11 @@
 [[event]]
-contract = "camera.v1.PoseChanged"
-expected_subject = "event.camera.v1.PoseChanged"
+contract = "jobs.v1.JobCompleted"
+expected_subject = "event.jobs.v1.JobCompleted"
 
 [[event]]
-contract = "tracking.v1.PersonTracked"
-expected_subject = "event.tracking.v1.PersonTracked"
+contract = "audit.v1.JobRecorded"
+expected_subject = "event.audit.v1.JobRecorded"
 
 [[rpc]]
-contract = "camera.v1.CameraControl.SetPose"
-expected_subject = "rpc.camera.v1.CameraControl.SetPose"
+contract = "jobs.v1.Worker.Run"
+expected_subject = "rpc.jobs.v1.Worker.Run"

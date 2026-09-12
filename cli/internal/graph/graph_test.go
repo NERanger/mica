@@ -25,40 +25,40 @@ func testWorkspace(t *testing.T) *workspace.Workspace {
 	if err := os.MkdirAll(filepath.Join(dir, "contracts"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	write(t, filepath.Join(dir, "camera.toml"), `
+	write(t, filepath.Join(dir, "worker.toml"), `
 [component]
-name = "camera"
+name = "worker"
 language = "cpp"
-publishes = ["camera.v1.PoseChanged"]
-provides = ["camera.v1.CameraControl.SetPose"]
+publishes = ["jobs.v1.JobCompleted"]
+provides = ["jobs.v1.Worker.Run"]
 
 [build]
 adapter = "cmake"
 
 [build.cmake]
-target = "camera"
+target = "worker"
 
 [artifact]
 kind = "executable"
-path = "camera"
+path = "worker"
 `)
-	write(t, filepath.Join(dir, "planner.toml"), `
+	write(t, filepath.Join(dir, "client.toml"), `
 [component]
-name = "planner"
+name = "client"
 language = "go"
-subscribes = ["camera.v1.PoseChanged"]
-calls = ["camera.v1.CameraControl.SetPose"]
+subscribes = ["jobs.v1.JobCompleted"]
+calls = ["jobs.v1.Worker.Run"]
 
 [build]
 adapter = "go"
 
 [build.go]
 package = "."
-output = "planner"
+output = "client"
 
 [artifact]
 kind = "executable"
-path = "planner"
+path = "client"
 `)
 	app := filepath.Join(dir, "app.toml")
 	write(t, app, `
@@ -70,12 +70,12 @@ kind = "nats"
 url = "nats://127.0.0.1:4222"
 
 [[process]]
-name = "cam"
-component = "./camera.toml"
+name = "work"
+component = "./worker.toml"
 
 [[process]]
-name = "plan"
-component = "./planner.toml"
+name = "cli"
+component = "./client.toml"
 `)
 	ws, err := workspace.Load(app)
 	if err != nil {
@@ -86,7 +86,7 @@ component = "./planner.toml"
 
 func TestASCII(t *testing.T) {
 	text := ASCII(testWorkspace(t))
-	for _, want := range []string{"cam", "plan", "C++", "Go", "camera.v1.PoseChanged", "RPC camera.v1.CameraControl.SetPose"} {
+	for _, want := range []string{"work", "cli", "C++", "Go", "jobs.v1.JobCompleted", "RPC jobs.v1.Worker.Run"} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("graph missing %q:\n%s", want, text)
 		}
@@ -95,7 +95,7 @@ func TestASCII(t *testing.T) {
 
 func TestDOT(t *testing.T) {
 	text := DOT(testWorkspace(t))
-	for _, want := range []string{"digraph \"demo\"", "\"cam\" -> \"plan\""} {
+	for _, want := range []string{"digraph \"demo\"", "\"work\" -> \"cli\""} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("dot missing %q:\n%s", want, text)
 		}

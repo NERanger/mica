@@ -1,0 +1,29 @@
+[component]
+name = "client"
+language = "go"
+
+publishes = []
+
+subscribes = [
+  "audit.v1.JobRecorded",
+]
+
+calls = [
+  "jobs.v1.Worker.Run",
+]
+
+provides = []
+
+# The go adapter compiles this package inside the framework's Go module,
+# so it can import runtime/go/mica and the generated contract code.
+[build]
+adapter = "go"
+
+[build.go]
+module_dir = "../../../.."
+package = "./examples/demo/components/client"
+output = "client"
+
+[artifact]
+kind = "executable"
+path = "client"

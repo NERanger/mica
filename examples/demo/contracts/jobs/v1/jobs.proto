@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+// jobs.v1 is one of the demo's two contract packages.
+//
+// The protobuf package is the wire identity: jobs.v1 and a future jobs.v2
+// are different contracts on different subjects and can coexist while
+// components migrate.
+package jobs.v1;
+
+option go_package = "mica/examples/demo/generated/go/jobs/v1;jobsv1";
+
+// Wrapper id types keep the message extensible; a raw string field
+// cannot grow later without a breaking change.
+message JobId {
+  string value = 1;
+}
+
+message RunRequest {
+  JobId job_id = 1;
+  string input = 2;
+}
+
+message RunResponse {
+  bool accepted = 1;
+}
+
+// Events state a fact with past-tense names: the job already completed.
+// Any number of components may subscribe, or none.
+message JobCompleted {
+  JobId job_id = 1;
+  string output = 2;
+  uint64 timestamp_ns = 3;
+}
+
+// A service groups RPC methods. Fully qualified, this method is
+// jobs.v1.Worker.Run; generated tokens let callers reference it without
+// ever writing a transport subject string.
+service Worker {
+  rpc Run(RunRequest) returns (RunResponse);
+}

@@ -16,8 +16,8 @@ kind = "nats"
 url = "nats://127.0.0.1:4222"
 
 [[process]]
-name = "camera-control"
-component = "./camera-control/component.toml"
+name = "worker"
+component = "./components/worker/component.toml"
 restart = "never"
 env = {}
 ```
@@ -51,26 +51,26 @@ A component declares its contract surface, native build, artifact, launch inform
 
 ```toml
 [component]
-name = "camera-control"
+name = "worker"
 language = "cpp"
 
-publishes = ["camera.v1.PoseChanged"]
+publishes = ["jobs.v1.JobCompleted"]
 subscribes = []
 calls = []
-provides = ["camera.v1.CameraControl.SetPose"]
+provides = ["jobs.v1.Worker.Run"]
 
 [build]
 adapter = "cmake"
 
 [build.cmake]
 source_dir = "."
-target = "camera-control"
+target = "worker"
 configure_args = []
 build_args = []
 
 [artifact]
 kind = "executable"
-path = "camera-control"
+path = "worker"
 
 [requirements]
 executables = []
@@ -86,7 +86,7 @@ libraries = ["libstdc++.so.6"]
 ```toml
 [build.cmake]
 source_dir = "."
-target = "camera-control"
+target = "worker"
 configure_args = []
 build_args = []
 ```
@@ -99,9 +99,9 @@ When building outside the MICA framework repository, set `MICA_SDK_ROOT` to the 
 
 ```toml
 [build.go]
-module_dir = "../../.."
-package = "./examples/demo/planner"
-output = "planner"
+module_dir = "../../../.."
+package = "./examples/demo/components/client"
+output = "client"
 build_args = []
 ```
 
@@ -110,7 +110,7 @@ build_args = []
 ```toml
 [build.python]
 source = "."
-module = "tracker"
+module = "recorder"
 ```
 
 The Python adapter copies the source into the build output and validates syntax.
@@ -129,7 +129,7 @@ Optional for executables, required for Python artifacts. Describes how the artif
 ```toml
 [run]
 command = "python3"
-args = ["-m", "tracker"]
+args = ["-m", "recorder"]
 working_directory = "."
 ```
 

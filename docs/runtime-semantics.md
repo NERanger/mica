@@ -4,7 +4,7 @@ This document is language-neutral. Python, C++, and Go must conform to it.
 
 ## Protocol version
 
-`mica.v1.Envelope.protocol_version` is `1`. This is the MICA protocol version, not an application contract version (`camera.v1` vs `camera.v2`).
+`mica.v1.Envelope.protocol_version` is `1`. This is the MICA protocol version, not an application contract version (`jobs.v1` vs `jobs.v2`).
 
 Unknown protocol versions are malformed.
 
@@ -31,8 +31,8 @@ rpc_subject(service_full_name, method) = "rpc." + service_full_name + "." + meth
 
 Examples:
 
-- `event.camera.v1.PoseChanged`
-- `rpc.camera.v1.CameraControl.SetPose`
+- `event.jobs.v1.JobCompleted`
+- `rpc.jobs.v1.Worker.Run`
 
 Languages must produce byte-for-byte identical subjects. Golden cases live in `tests/compatibility/cases.toml`.
 

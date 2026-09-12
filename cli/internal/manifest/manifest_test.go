@@ -20,10 +20,10 @@ func TestParseApp(t *testing.T) {
 	dir := t.TempDir()
 	writeFile(t, filepath.Join(dir, "component.toml"), `
 [component]
-name = "tracker"
+name = "recorder"
 language = "python"
-publishes = ["tracking.v1.PersonTracked"]
-subscribes = ["camera.v1.PoseChanged"]
+publishes = ["audit.v1.JobRecorded"]
+subscribes = ["jobs.v1.JobCompleted"]
 calls = []
 provides = []
 
@@ -32,7 +32,7 @@ adapter = "python"
 
 [build.python]
 source = "."
-module = "tracker"
+module = "recorder"
 
 [artifact]
 kind = "python"
@@ -40,9 +40,9 @@ path = "."
 
 [run]
 command = "python3"
-args = ["-m", "tracker"]
+args = ["-m", "recorder"]
 `)
-	appPath := filepath.Join(dir, "app.toml")
+appPath := filepath.Join(dir, "app.toml")
 	writeFile(t, appPath, `
 [app]
 name = "demo"
@@ -53,7 +53,7 @@ kind = "nats"
 url = "nats://127.0.0.1:4222"
 
 [[process]]
-name = "tracker"
+name = "recorder"
 component = "./component.toml"
 env = { PYTHONUNBUFFERED = "1" }
 `)
@@ -95,7 +95,7 @@ kind = "nats"
 url = "nats://127.0.0.1:4222"
 
 [[process]]
-name = "tracker"
+name = "recorder"
 component = "./component.toml"
 command = "python3"
 `)

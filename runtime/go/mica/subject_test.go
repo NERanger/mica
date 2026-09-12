@@ -3,15 +3,15 @@ package mica
 import "testing"
 
 func TestEventSubject(t *testing.T) {
-	got := EventSubject("camera.v1.PoseChanged")
-	if got != "event.camera.v1.PoseChanged" {
+	got := EventSubject("jobs.v1.JobCompleted")
+	if got != "event.jobs.v1.JobCompleted" {
 		t.Fatalf("got %s", got)
 	}
 }
 
 func TestRPCSubject(t *testing.T) {
-	got := RPCSubjectFromContract("camera.v1.CameraControl.SetPose")
-	if got != "rpc.camera.v1.CameraControl.SetPose" {
+	got := RPCSubjectFromContract("jobs.v1.Worker.Run")
+	if got != "rpc.jobs.v1.Worker.Run" {
 		t.Fatalf("got %s", got)
 	}
 }

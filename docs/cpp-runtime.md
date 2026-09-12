@@ -3,19 +3,19 @@
 C++20. Handlers run on the nats.c callback thread. `call` blocks the calling thread until reply or timeout.
 
 ```cpp
-mica::App app{"camera-control"};
+mica::App app{"worker"};
 
-app.subscribe<camera::v1::PoseChanged>([](const camera::v1::PoseChanged& event) {
+app.subscribe<jobs::v1::JobCompleted>([](const jobs::v1::JobCompleted& event) {
   ...
 });
 
-app.serve(mica::tokens::CameraControl_SetPose,
-          [](const camera::v1::SetPoseRequest& request) {
-            camera::v1::SetPoseResponse response;
+app.serve(mica::tokens::Worker_Run,
+          [](const jobs::v1::RunRequest& request) {
+            jobs::v1::RunResponse response;
             return response;
           });
 
-auto response = app.call(mica::tokens::CameraControl_SetPose, request, 1s);
+auto response = app.call(mica::tokens::Worker_Run, request, 1s);
 app.run();
 ```
 
