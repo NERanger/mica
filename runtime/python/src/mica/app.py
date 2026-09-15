@@ -16,6 +16,7 @@ from mica.errors import ProtocolError, RpcCode, RpcError, TransportError
 from mica.health import Health, State
 from mica.method import RpcMethod
 from mica.subject import event_subject, rpc_subject
+from mica.surface import Surface
 
 logger = logging.getLogger("mica")
 
@@ -33,11 +34,13 @@ class App:
         self._event_handlers: list[tuple[type, EventHandler]] = []
         self._rpc_handlers: list[tuple[RpcMethod, RpcHandler]] = []
         self._subscriptions: list[Any] = []
+        self._surface = Surface()
         self._lock = asyncio.Lock()
 
     def subscribe(self, event_type: type) -> Callable[[EventHandler], EventHandler]:
         def decorator(handler: EventHandler) -> EventHandler:
             self._event_handlers.append((event_type, handler))
+            self._surface.record("subscribes", event_type.DESCRIPTOR.full_name)
             return handler
 
         return decorator
@@ -45,6 +48,7 @@ class App:
     def serve(self, method: RpcMethod) -> Callable[[RpcHandler], RpcHandler]:
         def decorator(handler: RpcHandler) -> RpcHandler:
             self._rpc_handlers.append((method, handler))
+            self._surface.record("provides", method.contract_id)
             return handler
 
         return decorator
@@ -82,6 +86,7 @@ class App:
         for method, handler in self._rpc_handlers:
             await self._bind_rpc(method, handler)
         self._state = State.RUNNING
+        self._write_surface()
 
     async def shutdown(self) -> None:
         if self._state in (State.STOPPED, State.STOPPING):
@@ -101,6 +106,7 @@ class App:
             self._nc = None
             self._subscriptions.clear()
             self._state = State.STOPPED
+            self._write_surface()
 
     def run(self, main: Callable[[], Awaitable[None]] | None = None) -> None:
         asyncio.run(self._run(main))
@@ -139,6 +145,7 @@ class App:
         self._require_running()
         desc = event.DESCRIPTOR
         contract_id = desc.full_name
+        self._surface.record("publishes", contract_id)
         subject = event_subject(contract_id)
         body = encode(
             event.SerializeToString(),
@@ -154,6 +161,7 @@ class App:
         timeout: float | None = None,
     ) -> Any:
         self._require_running()
+        self._surface.record("calls", method.contract_id)
         timeout_s = self._config.rpc_timeout_s if timeout is None else timeout
         subject = rpc_subject(method.service, method.method)
         body = encode(
@@ -187,6 +195,15 @@ class App:
         if self._started_at is not None and self._state == State.RUNNING:
             uptime = int((time.monotonic() - self._started_at) * 1000)
         return Health(state=self._state, message="", uptime_ms=uptime)
+
+    def _write_surface(self) -> None:
+        path = self._config.surface_file
+        if not path:
+            return
+        try:
+            self._surface.write(path, self._name)
+        except Exception:
+            logger.exception("failed to write contract surface to %s", path)
 
     def _require_running(self) -> None:
         if self._state != State.RUNNING or self._nc is None:

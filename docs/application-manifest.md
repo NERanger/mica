@@ -79,6 +79,8 @@ libraries = ["libstdc++.so.6"]
 
 `language` is `python`, `cpp`, or `go`. Contract identifiers must exist in the workspace descriptor image. Subjects are never listed here.
 
+The four contract lists are the declared surface. At run time each process reports the contracts it actually uses (`MICA_SURFACE_FILE`), and the launcher warns when the observed surface drifts from the declared one. See `docs/deployment.md`.
+
 ### build adapters
 
 `adapter = "cmake"`:

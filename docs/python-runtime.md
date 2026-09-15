@@ -21,7 +21,7 @@ response = await app.call(Worker.Run, request, timeout=1.0)
 app.run(main)
 ```
 
-`App(name)` reads `MICA_NATS_URL` and `MICA_COMPONENT_NAME` when present.
+`App(name)` reads `MICA_NATS_URL`, `MICA_COMPONENT_NAME`, and `MICA_SURFACE_FILE` when present. `MICA_SURFACE_FILE` enables contract surface reporting (see `docs/runtime-semantics.md`).
 
 Raise `mica.RpcError(RpcCode.INVALID_ARGUMENT, "reason")` from a handler to return a structured RPC status. Other exceptions become `INTERNAL` with message `internal error`.
 

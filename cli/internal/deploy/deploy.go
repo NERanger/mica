@@ -99,6 +99,10 @@ func Prepare(ws *workspace.Workspace, result *build.Result) (string, error) {
 		record.Env = process.Env
 		record.Restart = process.Restart
 		record.ShutdownTimeoutMS = process.ShutdownTimeoutMS
+		record.Publishes = append([]string{}, component.Publishes...)
+		record.Subscribes = append([]string{}, component.Subscribes...)
+		record.Calls = append([]string{}, component.Calls...)
+		record.Provides = append([]string{}, component.Provides...)
 		switch artifact.Kind {
 		case manifest.ArtifactExecutable:
 			name := filepath.Base(artifact.Path)

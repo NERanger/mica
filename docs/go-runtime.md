@@ -24,6 +24,8 @@ Event handler errors are logged.
 
 `Run(ctx)` starts the app and waits for SIGINT/SIGTERM or `ctx` cancellation, then shuts down.
 
+`NewApp` reads `MICA_NATS_URL`, `MICA_COMPONENT_NAME`, and `MICA_SURFACE_FILE` from the environment. `MICA_SURFACE_FILE` enables contract surface reporting (see `docs/runtime-semantics.md`).
+
 Default RPC timeout: 5 seconds unless the context deadline is sooner. No retries.
 
 V0 does not install a custom goroutine scheduler.

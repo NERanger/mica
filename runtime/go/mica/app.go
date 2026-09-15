@@ -20,14 +20,15 @@ type EventHandler func(context.Context, proto.Message) error
 type RPCHandler func(context.Context, proto.Message) (proto.Message, error)
 
 type App struct {
-	cfg    AppConfig
-	nc     *nats.Conn
-	mu     sync.Mutex
-	state  State
-	start  time.Time
-	subs   []*nats.Subscription
-	events []queuedEvent
-	rpcs   []queuedRPC
+	cfg     AppConfig
+	nc      *nats.Conn
+	mu      sync.Mutex
+	state   State
+	start   time.Time
+	subs    []*nats.Subscription
+	events  []queuedEvent
+	rpcs    []queuedRPC
+	surface *contractSurface
 }
 
 type queuedEvent struct {
@@ -54,19 +55,21 @@ func NewApp(name string, cfg ...AppConfig) *App {
 			config.RPCTimeout = DefaultRPCTimeout
 		}
 	}
-	return &App{cfg: config, state: StateStopped}
+	return &App{cfg: config, state: StateStopped, surface: newContractSurface()}
 }
 
 func (a *App) Subscribe(sample proto.Message, handler EventHandler) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.events = append(a.events, queuedEvent{sample: sample, handler: handler})
+	a.surface.record("subscribes", string(sample.ProtoReflect().Descriptor().FullName()))
 }
 
 func (a *App) Serve(method RPCMethod, handler RPCHandler) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.rpcs = append(a.rpcs, queuedRPC{method: method, handler: handler})
+	a.surface.record("provides", method.ContractID())
 }
 
 func (a *App) Start() error {
@@ -103,6 +106,7 @@ func (a *App) Start() error {
 	a.start = time.Now()
 	a.state = StateRunning
 	a.mu.Unlock()
+	a.writeSurface()
 	return nil
 }
 
@@ -138,6 +142,7 @@ func (a *App) Shutdown() error {
 	a.subs = nil
 	a.state = StateStopped
 	a.mu.Unlock()
+	a.writeSurface()
 	return nil
 }
 
@@ -147,6 +152,7 @@ func (a *App) Publish(_ context.Context, event proto.Message) error {
 		return err
 	}
 	contractID := string(event.ProtoReflect().Descriptor().FullName())
+	a.surface.record("publishes", contractID)
 	payload, err := proto.Marshal(event)
 	if err != nil {
 		return &ProtocolError{Message: "failed to serialize event"}
@@ -163,6 +169,7 @@ func (a *App) Call(ctx context.Context, method RPCMethod, request proto.Message)
 	if err != nil {
 		return nil, err
 	}
+	a.surface.record("calls", method.ContractID())
 	if err := ctx.Err(); err != nil {
 		return nil, NewRpcError(RpcCodeCancelled, "rpc cancelled")
 	}
@@ -217,6 +224,15 @@ func (a *App) Health() Health {
 		h.UptimeMS = uint64(time.Since(a.start).Milliseconds())
 	}
 	return h
+}
+
+func (a *App) writeSurface() {
+	if a.cfg.SurfaceFile == "" {
+		return
+	}
+	if err := a.surface.write(a.cfg.SurfaceFile, a.cfg.Name); err != nil {
+		log.Printf("mica: failed to write contract surface to %s: %v", a.cfg.SurfaceFile, err)
+	}
 }
 
 func (a *App) requireRunning() (*nats.Conn, error) {

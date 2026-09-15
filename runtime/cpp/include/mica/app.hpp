@@ -54,6 +54,7 @@ class App {
   std::string call_method(const std::string& service, const std::string& method,
                           const std::string& contract_id, const google::protobuf::Message& request,
                           std::chrono::milliseconds timeout);
+  void write_surface();
 
   struct Impl;
   std::unique_ptr<Impl> impl_;

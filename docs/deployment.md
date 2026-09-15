@@ -40,7 +40,11 @@ generated/python/...       generated Python packages
 python/mica/...            bundled Python runtime when available
 mica-launcher              process supervisor for the target
 startup.sh                 makeself entry point
+surface/<process>.json     runtime contract surface reports (written at run time)
 ```
+
+Each `[[process]]` in `deployment.toml` carries the declared contract surface
+(`publishes`, `subscribes`, `calls`, `provides`) copied from `component.toml`.
 
 The artifact is self-contained for execution. The target does not need the `mica` CLI, Go, or a build toolchain.
 
@@ -63,11 +67,12 @@ The launcher is the process supervisor inside the artifact. It:
 - reads `deployment.toml`
 - checks target prerequisites before starting any process
 - starts processes in declared order
-- injects `MICA_NATS_URL`, `MICA_APP_NAME`, and `MICA_COMPONENT_NAME`
+- injects `MICA_NATS_URL`, `MICA_APP_NAME`, `MICA_COMPONENT_NAME`, and `MICA_SURFACE_FILE`
 - prefixes and forwards process output
 - handles SIGINT/SIGTERM and process groups
 - applies `on-failure` restarts
 - waits for the application shutdown timeout
+- compares each exited process's observed contract surface against its declared surface and warns on drift
 - returns the application exit code
 
 ## Target prerequisites
@@ -80,6 +85,20 @@ An artifact declares what the target must provide. The launcher reports every fa
 - `requirements.python.packages`: checked with `importlib.metadata`
 
 MICA does not install dependencies on the target. External NATS is a service requirement, not a bundled dependency; the launcher checks its TCP endpoint before starting processes. `--start-nats` is a development convenience for `--local` only.
+
+## Contract surface drift
+
+Runtimes report the contracts they actually use to `surface/<process>.json`.
+When a process exits, the launcher compares that report with the declared
+surface in `deployment.toml`:
+
+- observed-but-undeclared `publishes`, `subscribes`, `calls`, or `provides`
+  produce warnings.
+- declared-but-unobserved `subscribes` or `provides` produce warnings, because
+  handlers register deterministically at start.
+- declared-but-unobserved `publishes` or `calls` do not warn; the code path may
+  simply not have run.
+- a missing or unreadable report is skipped silently.
 
 Python components are delivered as source bundles. Whether to bundle an interpreter or virtual environment is a future adapter/profile capability.
 

@@ -4,8 +4,11 @@
 #include <chrono>
 #include <condition_variable>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <mutex>
+#include <set>
 #include <stdexcept>
 #include <thread>
 #include <vector>
@@ -38,6 +41,53 @@ std::uint64_t now_ns() {
       std::chrono::duration_cast<std::chrono::nanoseconds>(now).count());
 }
 
+void write_json_string(std::ostream& out, const std::string& value) {
+  out << '"';
+  for (const char c : value) {
+    if (c == '"' || c == '\\') {
+      out << '\\';
+    }
+    out << c;
+  }
+  out << '"';
+}
+
+void write_json_array(std::ostream& out, const std::set<std::string>& values) {
+  out << '[';
+  bool first = true;
+  for (const auto& value : values) {
+    if (!first) {
+      out << ',';
+    }
+    first = false;
+    write_json_string(out, value);
+  }
+  out << ']';
+}
+
+void write_surface_file(const std::string& path, const std::string& component,
+                        const std::set<std::string>& publishes,
+                        const std::set<std::string>& subscribes,
+                        const std::set<std::string>& calls,
+                        const std::set<std::string>& provides) {
+  const std::filesystem::path target{path};
+  if (target.has_parent_path()) {
+    std::filesystem::create_directories(target.parent_path());
+  }
+  std::ofstream out(target, std::ios::trunc);
+  out << "{\"component\":";
+  write_json_string(out, component);
+  out << ",\"publishes\":";
+  write_json_array(out, publishes);
+  out << ",\"subscribes\":";
+  write_json_array(out, subscribes);
+  out << ",\"calls\":";
+  write_json_array(out, calls);
+  out << ",\"provides\":";
+  write_json_array(out, provides);
+  out << '}';
+}
+
 mica::v1::Envelope make_envelope(const std::string& contract_id, const std::string& sender,
                                  const std::string& payload, RpcCode code, const std::string& message,
                                  bool with_status) {
@@ -68,6 +118,7 @@ struct App::Impl {
   std::vector<natsSubscription*> subs;
   struct PendingEvent {
     std::string subject;
+    std::string contract_id;
     std::function<std::unique_ptr<google::protobuf::Message>()> factory;
     std::function<void(const google::protobuf::Message&)> handler;
   };
@@ -77,6 +128,13 @@ struct App::Impl {
     std::function<std::unique_ptr<google::protobuf::Message>()> request_factory;
     std::function<std::string(const google::protobuf::Message&)> handler;
   };
+  struct Surface {
+    std::set<std::string> publishes;
+    std::set<std::string> subscribes;
+    std::set<std::string> calls;
+    std::set<std::string> provides;
+  };
+  Surface surface;
   std::vector<PendingEvent> pending_events;
   std::vector<PendingRpc> pending_rpcs;
   std::string failed_message;
@@ -112,6 +170,10 @@ void App::publish_event(const google::protobuf::Message& event) {
     throw TransportError("app is not running");
   }
   const std::string contract_id = event.GetDescriptor()->full_name();
+  {
+    std::lock_guard<std::mutex> lock(impl_->mu);
+    impl_->surface.publishes.insert(contract_id);
+  }
   const std::string subject = event_subject(contract_id);
   auto env = make_envelope(contract_id, impl_->config.name, event.SerializeAsString(), RpcCode::Ok,
                            "", false);
@@ -131,10 +193,12 @@ void App::subscribe_event(const google::protobuf::Descriptor* descriptor,
                           std::function<void(const google::protobuf::Message&)> handler) {
   Impl::PendingEvent pending{
       event_subject(descriptor->full_name()),
+      descriptor->full_name(),
       std::move(factory),
       std::move(handler),
   };
   std::lock_guard<std::mutex> lock(impl_->mu);
+  impl_->surface.subscribes.insert(pending.contract_id);
   impl_->pending_events.push_back(std::move(pending));
 }
 
@@ -148,6 +212,7 @@ void App::serve_method(std::string service, std::string method, std::string cont
       std::move(handler),
   };
   std::lock_guard<std::mutex> lock(impl_->mu);
+  impl_->surface.provides.insert(pending.contract_id);
   impl_->pending_rpcs.push_back(std::move(pending));
 }
 
@@ -159,6 +224,10 @@ std::string App::call_method(const std::string& service, const std::string& meth
   }
   if (timeout.count() <= 0) {
     timeout = impl_->config.rpc_timeout;
+  }
+  {
+    std::lock_guard<std::mutex> lock(impl_->mu);
+    impl_->surface.calls.insert(contract_id);
   }
   const std::string subject = rpc_subject(service, method);
   auto env = make_envelope(contract_id, impl_->config.name, request.SerializeAsString(), RpcCode::Ok,
@@ -319,6 +388,7 @@ void App::start() {
   }
   impl_->started_at = std::chrono::steady_clock::now();
   impl_->state = State::Running;
+  write_surface();
 }
 
 void App::run() {
@@ -348,8 +418,22 @@ void App::shutdown() {
     impl_->state = State::Stopped;
     impl_->cv.notify_all();
   }
+  write_surface();
   App* expected = this;
   g_running_app.compare_exchange_strong(expected, nullptr);
+}
+
+void App::write_surface() {
+  if (impl_->config.surface_file.empty()) {
+    return;
+  }
+  try {
+    std::lock_guard<std::mutex> lock(impl_->mu);
+    write_surface_file(impl_->config.surface_file, impl_->config.name, impl_->surface.publishes,
+                       impl_->surface.subscribes, impl_->surface.calls, impl_->surface.provides);
+  } catch (const std::exception& err) {
+    std::cerr << "[mica] failed to write contract surface: " << err.what() << "\n";
+  }
 }
 
 Health App::health() const {

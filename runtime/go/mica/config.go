@@ -16,6 +16,7 @@ type AppConfig struct {
 	Name         string
 	TransportURL string
 	RPCTimeout   time.Duration
+	SurfaceFile  string
 }
 
 func ConfigFromEnv(name string) AppConfig {
@@ -35,5 +36,6 @@ func ConfigFromEnv(name string) AppConfig {
 			cfg.RPCTimeout = time.Duration(ms) * time.Millisecond
 		}
 	}
+	cfg.SurfaceFile = os.Getenv("MICA_SURFACE_FILE")
 	return cfg
 }

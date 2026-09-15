@@ -25,6 +25,8 @@ Event handler exceptions are caught and logged.
 
 `run()` calls `start()` then waits for SIGINT/SIGTERM or `shutdown()`.
 
+`AppConfig::from_env` reads `MICA_NATS_URL`, `MICA_COMPONENT_NAME`, and `MICA_SURFACE_FILE`. `MICA_SURFACE_FILE` enables contract surface reporting (see `docs/runtime-semantics.md`).
+
 Default RPC timeout: 5 seconds. No retries.
 
 Do not block nats callback threads longer than necessary. Long work in a subscribe handler delays other callbacks on that connection.

@@ -12,6 +12,7 @@ struct AppConfig {
   std::string name;
   std::string transport_url = kDefaultTransportUrl;
   std::chrono::milliseconds rpc_timeout{5000};
+  std::string surface_file;
 
   static AppConfig from_env(std::string name);
 };

@@ -20,6 +20,10 @@ AppConfig AppConfig::from_env(std::string name) {
       timeout != nullptr && timeout[0] != '\0') {
     config.rpc_timeout = std::chrono::milliseconds{std::stoll(timeout)};
   }
+  if (const char* surface = std::getenv("MICA_SURFACE_FILE");
+      surface != nullptr && surface[0] != '\0') {
+    config.surface_file = surface;
+  }
   return config;
 }
 

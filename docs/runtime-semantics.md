@@ -72,6 +72,22 @@ Language exceptions, tracebacks, and concrete error types are not part of the wi
 
 Caller cancellation is local. NATS Core does not cancel the server handler. A late reply is ignored by a timed-out client. MICA does not claim distributed cancellation.
 
+## Contract surface
+
+Each `App` records the contract IDs it actually uses: `subscribes` and
+`provides` at handler registration, `publishes` and `calls` at invocation.
+
+When `MICA_SURFACE_FILE` is set, the runtime writes a JSON report to that path
+after `start()` binds handlers and again during `shutdown()`:
+
+```json
+{"component": "client", "publishes": [], "subscribes": ["audit.v1.JobRecorded"], "calls": ["jobs.v1.Worker.Run"], "provides": []}
+```
+
+Reporting is best-effort: an unset variable, an unwritable path, or a killed
+process produces no file and no error. The launcher uses the report to compare
+the observed surface against the declared `component.toml` contract surface.
+
 ## Lifecycle
 
 `STARTING` → `RUNNING` → `STOPPING` → `STOPPED`, or `FAILED` on startup failure.

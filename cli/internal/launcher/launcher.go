@@ -90,6 +90,11 @@ func supervise(dep *spec.Deployment, root string) int {
 		return item, nil
 	}
 
+	surfaceDir := filepath.Join(root, "surface")
+	if err := os.MkdirAll(surfaceDir, 0o755); err != nil {
+		fmt.Fprintf(os.Stderr, "mica: failed to create surface directory: %v\n", err)
+	}
+
 	for _, process := range dep.Processes {
 		item, err := spawn(process)
 		if err != nil {
@@ -117,6 +122,7 @@ func supervise(dep *spec.Deployment, root string) int {
 			select {
 			case <-item.exited:
 				fmt.Printf("[%s] exited with %d\n", item.spec.Name, item.code)
+				reportSurface(root, item.spec)
 				if item.spec.Restart == spec.RestartOnFailure && item.code != 0 && !isStopping() {
 					fmt.Printf("[%s] restarting\n", item.spec.Name)
 					replacement, err := spawn(item.spec)
@@ -166,6 +172,7 @@ func supervise(dep *spec.Deployment, root string) int {
 			<-item.exited
 			fmt.Printf("[%s] killed\n", item.spec.Name)
 		}
+		reportSurface(root, item.spec)
 	}
 	return exitCode
 }
@@ -179,6 +186,7 @@ func childEnv(dep *spec.Deployment, process spec.Process, root string) []string 
 		"MICA_NATS_URL="+dep.Transport.URL,
 		"MICA_APP_NAME="+dep.App.Name,
 		"MICA_COMPONENT_NAME="+process.Name,
+		"MICA_SURFACE_FILE="+surfacePath(root, process.Name),
 	)
 	var pythonPath []string
 	for _, entry := range dep.Environment.PythonPath {

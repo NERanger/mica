@@ -45,6 +45,10 @@ type Process struct {
 	WorkingDirectory  string            `toml:"working_directory"`
 	Restart           string            `toml:"restart"`
 	ShutdownTimeoutMS int               `toml:"shutdown_timeout_ms"`
+	Publishes         []string          `toml:"publishes"`
+	Subscribes        []string          `toml:"subscribes"`
+	Calls             []string          `toml:"calls"`
+	Provides          []string          `toml:"provides"`
 }
 
 type Requirement struct {
