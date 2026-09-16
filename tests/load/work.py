@@ -6,7 +6,7 @@ from pathlib import Path
 
 from audit.v1.audit_pb2 import JobRecorded
 from jobs.v1.jobs_pb2 import JobCompleted, RunRequest, RunResponse
-from mica import App, AppConfig, RpcCode, RpcError
+from mica import App, AppConfig, CallTimeout, RpcCode, RpcError
 from mica_tokens import Worker
 
 from tests.conftest import harness_env
@@ -58,7 +58,7 @@ async def call_rpc(
     interval = 1.0 / rate
     origin = time.perf_counter()
 
-    async def one(i: int) -> tuple[int | None, RpcCode | None]:
+    async def one(i: int) -> tuple[int | None, str | None]:
         delay = (origin + i * interval) - time.perf_counter()
         if delay > 0:
             await asyncio.sleep(delay)
@@ -70,21 +70,25 @@ async def call_rpc(
             try:
                 await app.call(Worker.Run, req, timeout=timeout_s)
                 return time.perf_counter_ns() - t0, None
+            except CallTimeout:
+                return None, "timeout"
             except RpcError as exc:
-                return None, exc.code
+                if exc.code == RpcCode.UNAVAILABLE:
+                    return None, "unavailable"
+                return None, "error"
 
     results = await asyncio.gather(*[one(i) for i in range(count)])
     samples: list[int] = []
     errors = timeouts = unavailable = 0
-    for lat, code in results:
-        if code is None:
+    for lat, kind in results:
+        if kind is None:
             assert lat is not None
             samples.append(lat)
         else:
             errors += 1
-            if code == RpcCode.TIMEOUT:
+            if kind == "timeout":
                 timeouts += 1
-            elif code == RpcCode.UNAVAILABLE:
+            elif kind == "unavailable":
                 unavailable += 1
     return samples, errors, timeouts, unavailable
 

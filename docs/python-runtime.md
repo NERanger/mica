@@ -25,6 +25,8 @@ app.run(main)
 
 Raise `mica.RpcError(RpcCode.INVALID_ARGUMENT, "reason")` from a handler to return a structured RPC status. Other exceptions become `INTERNAL` with message `internal error`.
 
+`call` raises `CallTimeout` when the caller deadline expires and `CallCancelled` when the caller task is cancelled. Those are local outcomes, not wire status.
+
 Event handler exceptions are logged; the process keeps running.
 
 `run(main)` installs SIGINT/SIGTERM handlers, starts the app, runs `main`, then shuts down. Drain uses nats-py `drain()`.

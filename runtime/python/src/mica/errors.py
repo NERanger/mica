@@ -10,8 +10,15 @@ class RpcCode(IntEnum):
     NOT_FOUND = 3
     UNAVAILABLE = 4
     INTERNAL = 5
-    TIMEOUT = 6
-    CANCELLED = 7
+
+
+def is_wire_error(code: RpcCode) -> bool:
+    return code in (
+        RpcCode.INVALID_ARGUMENT,
+        RpcCode.NOT_FOUND,
+        RpcCode.UNAVAILABLE,
+        RpcCode.INTERNAL,
+    )
 
 
 class MicaError(Exception):
@@ -31,3 +38,15 @@ class RpcError(MicaError):
         self.code = RpcCode(code)
         self.message = message
         super().__init__(f"{self.code.name}: {message}" if message else self.code.name)
+
+
+class CallTimeout(MicaError):
+    def __init__(self, message: str = "rpc timed out") -> None:
+        self.message = message
+        super().__init__(message)
+
+
+class CallCancelled(MicaError):
+    def __init__(self, message: str = "rpc cancelled") -> None:
+        self.message = message
+        super().__init__(message)

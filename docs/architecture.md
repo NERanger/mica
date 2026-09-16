@@ -72,7 +72,7 @@ my-app/
 
 - Application code talks to `App`, never to NATS APIs.
 - Subject names are derived from protobuf descriptors.
-- RPC errors cross the wire as `mica.v1.RpcStatus`, never as language exceptions.
+- RPC errors cross the wire as `mica.v1.RpcStatus`, never as language exceptions. Caller deadline expiry and caller cancellation are local `CallTimeout` / `CallCancelled` outcomes, not `RpcStatus`.
 - Static architecture is computed from manifests and the descriptor image, not from runtime observation.
 - Components own their native build declaration. MICA owns lifecycle, artifact flow, and deployment.
 - The CLI does not import language runtimes. Language runtimes do not import the CLI.

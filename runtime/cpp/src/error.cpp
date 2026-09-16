@@ -16,10 +16,6 @@ const char* rpc_code_name(RpcCode code) {
       return "UNAVAILABLE";
     case RpcCode::Internal:
       return "INTERNAL";
-    case RpcCode::Timeout:
-      return "TIMEOUT";
-    case RpcCode::Cancelled:
-      return "CANCELLED";
   }
   return "UNSPECIFIED";
 }

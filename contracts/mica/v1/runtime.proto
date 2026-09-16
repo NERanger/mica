@@ -11,8 +11,6 @@ enum RpcCode {
   RPC_CODE_NOT_FOUND = 3;
   RPC_CODE_UNAVAILABLE = 4;
   RPC_CODE_INTERNAL = 5;
-  RPC_CODE_TIMEOUT = 6;
-  RPC_CODE_CANCELLED = 7;
 }
 
 message RpcStatus {

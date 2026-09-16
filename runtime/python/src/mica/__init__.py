@@ -18,7 +18,15 @@ _add_generated_path()
 
 from mica.app import App
 from mica.config import AppConfig, PROTOCOL_VERSION
-from mica.errors import MicaError, ProtocolError, RpcCode, RpcError, TransportError
+from mica.errors import (
+    CallCancelled,
+    CallTimeout,
+    MicaError,
+    ProtocolError,
+    RpcCode,
+    RpcError,
+    TransportError,
+)
 from mica.health import Health, State
 from mica.method import RpcMethod
 from mica.subject import event_subject, rpc_subject, rpc_subject_from_contract
@@ -26,6 +34,8 @@ from mica.subject import event_subject, rpc_subject, rpc_subject_from_contract
 __all__ = [
     "App",
     "AppConfig",
+    "CallCancelled",
+    "CallTimeout",
     "Health",
     "MicaError",
     "PROTOCOL_VERSION",

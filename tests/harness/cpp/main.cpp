@@ -218,11 +218,12 @@ int call_load(mica::App& app, int count, int rate, int concurrency) {
         ok.fetch_add(1);
         std::lock_guard<std::mutex> lock(mu);
         samples.push_back(static_cast<std::uint64_t>(lat));
+      } catch (const mica::CallTimeout&) {
+        errors.fetch_add(1);
+        timeouts.fetch_add(1);
       } catch (const mica::RpcError& err) {
         errors.fetch_add(1);
-        if (err.code() == mica::RpcCode::Timeout) {
-          timeouts.fetch_add(1);
-        } else if (err.code() == mica::RpcCode::Unavailable) {
+        if (err.code() == mica::RpcCode::Unavailable) {
           unavailable.fetch_add(1);
         }
       } catch (...) {

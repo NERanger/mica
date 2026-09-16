@@ -6,7 +6,7 @@ import time
 
 import pytest
 from jobs.v1.jobs_pb2 import RunRequest
-from mica import App, AppConfig, RpcError, RpcCode
+from mica import App, AppConfig, CallCancelled, CallTimeout, RpcError, RpcCode
 from mica_tokens import Worker
 from tests.conftest import harness_env
 
@@ -101,9 +101,30 @@ async def test_rpc_timeout(nats_url: str, cpp_harness) -> None:
         req = RunRequest()
         req.job_id.value = "job-1"
         req.input = "task-1"
-        with pytest.raises(RpcError) as raised:
+        with pytest.raises(CallTimeout):
             await app.call(Worker.Run, req, timeout=0.3)
-        assert raised.value.code == RpcCode.TIMEOUT
+        await app.shutdown()
+    finally:
+        server.terminate()
+        server.wait(timeout=5)
+
+
+@pytest.mark.asyncio
+async def test_rpc_cancelled(nats_url: str, cpp_harness) -> None:
+    env = harness_env(nats_url)
+    server = subprocess.Popen([str(cpp_harness), "serve-run", "sleep"], env=env)
+    try:
+        await asyncio.sleep(0.4)
+        app = App("py-client", AppConfig(name="py-client", transport_url=nats_url))
+        await app.start()
+        req = RunRequest()
+        req.job_id.value = "job-1"
+        req.input = "task-1"
+        task = asyncio.create_task(app.call(Worker.Run, req, timeout=5))
+        await asyncio.sleep(0.05)
+        task.cancel()
+        with pytest.raises(CallCancelled):
+            await task
         await app.shutdown()
     finally:
         server.terminate()

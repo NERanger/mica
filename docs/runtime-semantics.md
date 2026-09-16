@@ -54,7 +54,7 @@ Handler failures are logged. They do not unsubscribe and do not fail the process
 
 Default timeout is 5 seconds. Timeouts are explicit. V0 does not retry.
 
-Codes:
+Wire codes on `RpcStatus`:
 
 | Code | Meaning |
 | --- | --- |
@@ -63,14 +63,22 @@ Codes:
 | NOT_FOUND | requested entity missing |
 | UNAVAILABLE | no provider / transport cannot complete |
 | INTERNAL | handler panic/exception; wire message is generic |
-| TIMEOUT | caller deadline expired |
-| CANCELLED | caller cancelled locally |
+
+Missing status and `UNSPECIFIED` are success. An unknown wire code is a protocol error.
+
+`UNAVAILABLE` is also synthesized by the caller when NATS reports no responders. That is the same meaning as a server returning `UNAVAILABLE`.
 
 Language exceptions, tracebacks, and concrete error types are not part of the wire format.
 
+## Local call outcomes
+
+Caller deadline expiry and caller cancellation are not `RpcStatus`. They never appear on the wire. Language runtimes expose them as `CallTimeout` and `CallCancelled`.
+
+A late reply is ignored by a caller that already timed out or cancelled.
+
 ## Cancellation
 
-Caller cancellation is local. NATS Core does not cancel the server handler. A late reply is ignored by a timed-out client. MICA does not claim distributed cancellation.
+Caller cancellation is local. NATS Core does not cancel the server handler. MICA does not claim distributed cancellation.
 
 ## Contract surface
 

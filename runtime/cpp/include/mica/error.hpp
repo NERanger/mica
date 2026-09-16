@@ -12,8 +12,6 @@ enum class RpcCode {
   NotFound = 3,
   Unavailable = 4,
   Internal = 5,
-  Timeout = 6,
-  Cancelled = 7,
 };
 
 class MicaError : public std::runtime_error {
@@ -44,6 +42,16 @@ class RpcError : public MicaError {
 
   RpcCode code_;
   std::string message_;
+};
+
+class CallTimeout : public MicaError {
+ public:
+  explicit CallTimeout(const std::string& message = "rpc timed out") : MicaError(message) {}
+};
+
+class CallCancelled : public MicaError {
+ public:
+  explicit CallCancelled(const std::string& message = "rpc cancelled") : MicaError(message) {}
 };
 
 const char* rpc_code_name(RpcCode code);

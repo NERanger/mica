@@ -171,7 +171,10 @@ func (a *App) Call(ctx context.Context, method RPCMethod, request proto.Message)
 	}
 	a.surface.record("calls", method.ContractID())
 	if err := ctx.Err(); err != nil {
-		return nil, NewRpcError(RpcCodeCancelled, "rpc cancelled")
+		if errors.Is(err, context.Canceled) {
+			return nil, NewCallCancelled("rpc cancelled", err)
+		}
+		return nil, NewCallTimeout("rpc timed out", err)
 	}
 	if _, ok := ctx.Deadline(); !ok {
 		var cancel context.CancelFunc
@@ -189,10 +192,10 @@ func (a *App) Call(ctx context.Context, method RPCMethod, request proto.Message)
 	msg, err := nc.RequestWithContext(ctx, RPCSubject(method.Service, method.Method), body)
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
-			return nil, NewRpcError(RpcCodeCancelled, "rpc cancelled")
+			return nil, NewCallCancelled("rpc cancelled", err)
 		}
 		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, nats.ErrTimeout) {
-			return nil, NewRpcError(RpcCodeTimeout, "rpc timed out")
+			return nil, NewCallTimeout("rpc timed out", err)
 		}
 		if errors.Is(err, nats.ErrNoResponders) {
 			return nil, NewRpcError(RpcCodeUnavailable, "no rpc provider")
@@ -206,6 +209,9 @@ func (a *App) Call(ctx context.Context, method RPCMethod, request proto.Message)
 	if env.Status != nil {
 		code := RpcCode(env.Status.Code)
 		if code != RpcCodeUnspecified && code != RpcCodeOK {
+			if !isWireError(code) {
+				return nil, &ProtocolError{Message: "invalid rpc status"}
+			}
 			return nil, NewRpcError(code, env.Status.Message)
 		}
 	}
@@ -294,7 +300,7 @@ func (a *App) bindRPC(method RPCMethod, handler RPCHandler) error {
 				resp, herr := handler(context.Background(), request)
 				if herr != nil {
 					var rpcErr *RpcError
-					if errors.As(herr, &rpcErr) {
+					if errors.As(herr, &rpcErr) && isWireError(rpcErr.Code) {
 						code = rpcErr.Code
 						message = rpcErr.Message
 					} else {

@@ -88,6 +88,18 @@ void write_surface_file(const std::string& path, const std::string& component,
   out << '}';
 }
 
+bool is_wire_error(RpcCode code) {
+  switch (code) {
+    case RpcCode::InvalidArgument:
+    case RpcCode::NotFound:
+    case RpcCode::Unavailable:
+    case RpcCode::Internal:
+      return true;
+    default:
+      return false;
+  }
+}
+
 mica::v1::Envelope make_envelope(const std::string& contract_id, const std::string& sender,
                                  const std::string& payload, RpcCode code, const std::string& message,
                                  bool with_status) {
@@ -241,7 +253,7 @@ std::string App::call_method(const std::string& service, const std::string& meth
       natsConnection_Request(&reply, impl_->conn, subject.c_str(), bytes.data(),
                              static_cast<int>(bytes.size()), timeout.count());
   if (status == NATS_TIMEOUT) {
-    throw RpcError(RpcCode::Timeout, "rpc timed out");
+    throw CallTimeout("rpc timed out");
   }
   if (status == NATS_NO_RESPONDERS) {
     throw RpcError(RpcCode::Unavailable, "no rpc provider");
@@ -260,6 +272,9 @@ std::string App::call_method(const std::string& service, const std::string& meth
   if (decoded.has_status()) {
     auto code = static_cast<RpcCode>(decoded.status().code());
     if (code != RpcCode::Unspecified && code != RpcCode::Ok) {
+      if (!is_wire_error(code)) {
+        throw ProtocolError("invalid rpc status");
+      }
       throw RpcError(code, decoded.status().message());
     }
   }
@@ -324,8 +339,14 @@ void rpc_callback(natsConnection*, natsSubscription*, natsMsg* msg, void* closur
       try {
         payload = ctx->handler(*request);
       } catch (const RpcError& err) {
-        code = err.code();
-        message = err.rpc_message();
+        if (is_wire_error(err.code())) {
+          code = err.code();
+          message = err.rpc_message();
+        } else {
+          std::cerr << "[mica] rpc handler failed\n";
+          code = RpcCode::Internal;
+          message = "internal error";
+        }
         payload.clear();
       } catch (...) {
         std::cerr << "[mica] rpc handler failed\n";

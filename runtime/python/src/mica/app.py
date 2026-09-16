@@ -12,7 +12,15 @@ from nats.errors import NoRespondersError, TimeoutError as NatsTimeoutError
 
 from mica.config import AppConfig, PROTOCOL_VERSION
 from mica.envelope import decode, encode, status_error
-from mica.errors import ProtocolError, RpcCode, RpcError, TransportError
+from mica.errors import (
+    CallCancelled,
+    CallTimeout,
+    ProtocolError,
+    RpcCode,
+    RpcError,
+    TransportError,
+    is_wire_error,
+)
 from mica.health import Health, State
 from mica.method import RpcMethod
 from mica.subject import event_subject, rpc_subject
@@ -172,11 +180,11 @@ class App:
         try:
             msg = await self._nc.request(subject, body, timeout=timeout_s)
         except NatsTimeoutError as exc:
-            raise RpcError(RpcCode.TIMEOUT, "rpc timed out") from exc
+            raise CallTimeout("rpc timed out") from exc
         except NoRespondersError as exc:
             raise RpcError(RpcCode.UNAVAILABLE, "no rpc provider") from exc
         except asyncio.CancelledError:
-            raise RpcError(RpcCode.CANCELLED, "rpc cancelled") from None
+            raise CallCancelled("rpc cancelled") from None
         except Exception as exc:
             raise TransportError("rpc transport failure") from exc
         env = decode(msg.data)
@@ -255,12 +263,14 @@ class App:
                         result = await result
                     payload = result.SerializeToString()
                 except RpcError as exc:
-                    code = exc.code
-                    message = exc.message
+                    if is_wire_error(exc.code):
+                        code = exc.code
+                        message = exc.message
+                    else:
+                        logger.exception("rpc handler failed for %s", method.contract_id)
+                        code = RpcCode.INTERNAL
+                        message = "internal error"
                     payload = b""
-                except asyncio.CancelledError:
-                    code = RpcCode.CANCELLED
-                    message = "cancelled"
                 except Exception:
                     logger.exception("rpc handler failed for %s", method.contract_id)
                     code = RpcCode.INTERNAL

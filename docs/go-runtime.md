@@ -20,6 +20,8 @@ resp, err := app.Call(ctx, tokens.WorkerRun, request)
 
 Return `mica.NewRpcError(code, message)` for a structured status. Other errors become `INTERNAL`.
 
+`Call` returns `CallTimeout` when the caller deadline expires and `CallCancelled` when the caller context is cancelled. Those are local outcomes, not wire status. They unwrap to `context.DeadlineExceeded` / `context.Canceled`.
+
 Event handler errors are logged.
 
 `Run(ctx)` starts the app and waits for SIGINT/SIGTERM or `ctx` cancellation, then shuts down.

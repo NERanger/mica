@@ -4,7 +4,7 @@ import time
 import uuid
 
 from mica.config import PROTOCOL_VERSION
-from mica.errors import ProtocolError, RpcCode, RpcError
+from mica.errors import ProtocolError, RpcCode, RpcError, is_wire_error
 
 try:
     from mica import runtime_pb2
@@ -62,7 +62,12 @@ def decode(data: bytes):
 def status_error(env) -> RpcError | None:
     if not env.HasField("status"):
         return None
-    code = RpcCode(env.status.code)
+    try:
+        code = RpcCode(env.status.code)
+    except ValueError as exc:
+        raise ProtocolError("invalid rpc status") from exc
     if code in (RpcCode.UNSPECIFIED, RpcCode.OK):
         return None
+    if not is_wire_error(code):
+        raise ProtocolError("invalid rpc status")
     return RpcError(code, env.status.message)

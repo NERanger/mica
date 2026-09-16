@@ -23,7 +23,7 @@ Handlers remain serial per subscription. There are no queue groups, retries, or 
 | Event hop p99 | < 20 ms |
 | RPC RTT p99 | < 20 ms |
 | Pipeline (call start → `JobRecorded`) p99 | < 50 ms |
-| Loss, TIMEOUT, UNAVAILABLE | 0 |
+| Loss, CallTimeout, UNAVAILABLE | 0 |
 
 The first 100 samples are discarded as warmup. Event hops use application `timestamp_ns` on `JobCompleted` / `JobRecorded`. RPC RTT is the caller clock around `call`. Envelope `timestamp_ns` is not visible to handlers.
 

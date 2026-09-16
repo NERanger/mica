@@ -5,14 +5,12 @@ import "fmt"
 type RpcCode int
 
 const (
-	RpcCodeUnspecified RpcCode = 0
-	RpcCodeOK RpcCode = 1
+	RpcCodeUnspecified     RpcCode = 0
+	RpcCodeOK              RpcCode = 1
 	RpcCodeInvalidArgument RpcCode = 2
-	RpcCodeNotFound RpcCode = 3
-	RpcCodeUnavailable RpcCode = 4
-	RpcCodeInternal RpcCode = 5
-	RpcCodeTimeout RpcCode = 6
-	RpcCodeCancelled RpcCode = 7
+	RpcCodeNotFound        RpcCode = 3
+	RpcCodeUnavailable     RpcCode = 4
+	RpcCodeInternal        RpcCode = 5
 )
 
 func (c RpcCode) String() string {
@@ -27,12 +25,17 @@ func (c RpcCode) String() string {
 		return "UNAVAILABLE"
 	case RpcCodeInternal:
 		return "INTERNAL"
-	case RpcCodeTimeout:
-		return "TIMEOUT"
-	case RpcCodeCancelled:
-		return "CANCELLED"
 	default:
 		return "UNSPECIFIED"
+	}
+}
+
+func isWireError(code RpcCode) bool {
+	switch code {
+	case RpcCodeInvalidArgument, RpcCodeNotFound, RpcCodeUnavailable, RpcCodeInternal:
+		return true
+	default:
+		return false
 	}
 }
 
@@ -50,6 +53,42 @@ func (e *RpcError) Error() string {
 
 func NewRpcError(code RpcCode, message string) *RpcError {
 	return &RpcError{Code: code, Message: message}
+}
+
+type CallTimeout struct {
+	Message string
+	Err     error
+}
+
+func (e *CallTimeout) Error() string {
+	if e.Message == "" {
+		return "rpc timed out"
+	}
+	return e.Message
+}
+
+func (e *CallTimeout) Unwrap() error { return e.Err }
+
+func NewCallTimeout(message string, err error) *CallTimeout {
+	return &CallTimeout{Message: message, Err: err}
+}
+
+type CallCancelled struct {
+	Message string
+	Err     error
+}
+
+func (e *CallCancelled) Error() string {
+	if e.Message == "" {
+		return "rpc cancelled"
+	}
+	return e.Message
+}
+
+func (e *CallCancelled) Unwrap() error { return e.Err }
+
+func NewCallCancelled(message string, err error) *CallCancelled {
+	return &CallCancelled{Message: message, Err: err}
 }
 
 type TransportError struct {

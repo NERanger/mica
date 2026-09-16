@@ -362,14 +362,12 @@ func callLoad(app *mica.App, count, rate, concurrency int) {
 				cancel()
 				if err != nil {
 					errs.Add(1)
+					var callTimeout *mica.CallTimeout
 					var rpcErr *mica.RpcError
-					if errors.As(err, &rpcErr) {
-						switch rpcErr.Code {
-						case mica.RpcCodeTimeout:
-							timeouts.Add(1)
-						case mica.RpcCodeUnavailable:
-							unavailable.Add(1)
-						}
+					if errors.As(err, &callTimeout) {
+						timeouts.Add(1)
+					} else if errors.As(err, &rpcErr) && rpcErr.Code == mica.RpcCodeUnavailable {
+						unavailable.Add(1)
 					}
 					continue
 				}

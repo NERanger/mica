@@ -21,6 +21,8 @@ app.run();
 
 Throw `mica::RpcError` from a serve handler for a structured status. Other exceptions become `INTERNAL`.
 
+`call` throws `CallTimeout` when the caller deadline expires. That is a local outcome, not wire status. C++ `call` has no cancellation API.
+
 Event handler exceptions are caught and logged.
 
 `run()` calls `start()` then waits for SIGINT/SIGTERM or `shutdown()`.
