@@ -36,9 +36,12 @@ From the repository root:
 ./scripts/bootstrap
 ./scripts/build
 ./scripts/test
+./scripts/pressure
 mica graph examples/demo/app.toml
 ./scripts/run-demo
 ```
+
+`./scripts/test` includes a short communication smoke (1000 events/s, 200 RPC/s, p99 limits in `docs/load.md`). `./scripts/pressure` is the 15 s heavy profile.
 
 `./scripts/run-demo` builds, starts a local `nats-server`, and runs `mica deploy examples/demo/app.toml --local --start-nats`. Stop with Ctrl+C.
 
@@ -94,6 +97,7 @@ MICA framework repository:
 | `contracts/mica/*.proto` | `./scripts/generate` |
 | runtime, CLI, or demo source | `./scripts/build` |
 | Behavior or contracts | `./scripts/test` |
+| Communication latency | `./scripts/pressure` |
 
 Inside an application workspace:
 

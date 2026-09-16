@@ -26,6 +26,7 @@ Developer setup, demo, and daily loop: [docs/quick-start.md](docs/quick-start.md
 ./scripts/bootstrap
 ./scripts/build
 ./scripts/test
+./scripts/pressure
 mica graph examples/demo/app.toml
 ./scripts/run-demo
 ```

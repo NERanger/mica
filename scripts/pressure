@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+export PATH="$ROOT/.tools/bin:$PATH"
+cd "$ROOT"
+export MICA_LOAD=1
+python3 -m pytest -m load "$@"

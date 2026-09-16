@@ -55,6 +55,7 @@ application programming model.
 | `docs/python-runtime.md` | Python API and concurrency |
 | `docs/cpp-runtime.md` | C++ API and threading |
 | `docs/go-runtime.md` | Go API and goroutines |
+| `docs/load.md` | Communication pressure tests, profiles, SLOs |
 
 ## Design Changes
 
@@ -70,6 +71,7 @@ recommendation, obtain the decision, and record it before implementation.
 ./scripts/generate
 ./scripts/build
 ./scripts/test
+./scripts/pressure
 mica init <directory>
 mica graph examples/demo/app.toml
 mica build examples/demo/app.toml

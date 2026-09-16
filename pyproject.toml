@@ -6,3 +6,6 @@ pythonpath = [
   "runtime/python/src",
   "examples/demo/generated/python",
 ]
+markers = [
+  "load: heavy communication pressure profile (opt-in via ./scripts/pressure)",
+]
